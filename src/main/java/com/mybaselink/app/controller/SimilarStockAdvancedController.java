@@ -18,7 +18,7 @@ public class SimilarStockAdvancedController {
     }
 
     @GetMapping("/similar-advanced")
-    public Map<String, Object> getSimilarStocks(
+    public Map<String, Object> getSimilarStocks( 
             @RequestParam String company,
             @RequestParam String start,
             @RequestParam String end
