@@ -1,0 +1,244 @@
+/* ===========================================
+   📘 공통 리스트 스타일 (common-list.css)
+   버전: 최종 안정판 (2025-10)
+   =========================================== */
+
+/* ===== 기본 ===== */
+body {
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    font-size: 0.95rem;
+    background-color: #f9fafc;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+h2 {
+    font-size: 1.3rem;
+    color: #222;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.list-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ===== 검색영역 ===== */
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.search-bar button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-bar button:hover {
+    background-color: #1e40af;
+}
+
+/* ===== 버튼영역 ===== */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.action-buttons button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.action-buttons button:hover {
+    background-color: #1e40af;
+}
+
+.action-buttons #deleteSelectedBtn {
+    background-color: #dc2626;
+}
+
+.action-buttons #deleteSelectedBtn:hover {
+    background-color: #991b1b;
+}
+
+.action-buttons #excelBtn {
+    background-color: #059669;
+}
+
+.action-buttons #excelBtn:hover {
+    background-color: #047857;
+}
+
+/* ===== 테이블 ===== */
+.common-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.common-table th, .common-table td {
+    border: 1px solid #ddd;
+    padding: 8px 10px;
+    text-align: center;
+}
+
+.common-table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+}
+
+.common-table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.common-table td a {
+    color: #2563eb;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ===== 페이지네이션 ===== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.pagination button {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.pagination button:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.pagination button.active {
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+}
+
+/* ===== 모달 ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.45);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #444;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.modal-actions button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    font-size: 0.9rem;
+}
+
+#saveBtn, #updateBtn {
+    background-color: #2563eb;
+}
+
+#saveBtn:hover, #updateBtn:hover {
+    background-color: #1e40af;
+}
+
+.closeBtn {
+    background-color: #6b7280;
+}
+
+.closeBtn:hover {
+    background-color: #4b5563;
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+    .list-container {
+        padding: 12px;
+    }
+    .action-buttons {
+        flex-direction: column;
+    }
+    .search-bar {
+        flex-direction: column;
+    }
+    .common-table th, .common-table td {
+        padding: 6px;
+        font-size: 0.85rem;
+    }
+}

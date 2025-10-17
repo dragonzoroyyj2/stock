@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default_layout}">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>유사 차트 종목 분석</title>
+  <style>
+    body { font-family: "Noto Sans KR", Arial, sans-serif; margin:0; padding:0; background:#f9fafb; color:#111827; }
+    .content-container { max-width: 1500px; margin: 0 auto; padding: 1rem; }
+    h2 { font-size: 1.3rem; margin-bottom: 1rem; }
+    .search-area { display: flex; flex-wrap: wrap; gap:0.5rem; align-items:center; margin-bottom:1rem; }
+    input, button { padding:0.5rem; font-size:0.9rem; border-radius:5px; border:1px solid #d1d5db; }
+    input { flex:1; min-width:150px; }
+    button { background:#2563eb; color:white; border:none; cursor:pointer; }
+    button:hover { background:#1e40af; }
+    table { width:100%; border-collapse:collapse; background:white; border-radius:8px; overflow:hidden; }
+    th, td { padding:0.6rem 0.8rem; border-bottom:1px solid #e5e7eb; text-align:left; font-size:0.9rem; }
+    th { background:#f3f4f6; font-weight:600; }
+    tr:hover { background:#f9fafb; }
+    .loading { display:none; margin-top:1rem; font-size:0.9rem; color:#2563eb; }
+    .loading.active { display:block; }
+    .warning { margin-top:1rem; color:red; font-size:0.9rem; }
+  </style>
+</head>
+
+<body>
+<div layout:fragment="content">
+  <div class="content-container">
+    <h2>유사 차트 종목 분석</h2>
+
+    <div class="search-area">
+      <input type="text" id="company" placeholder="기준 종목명" value="케이엔알시스템">
+      <input type="date" id="start" value="2024-03-07">
+      <input type="date" id="end" value="2024-12-09">
+      <button id="searchBtn">분석 시작</button>
+    </div>
+
+    <div class="loading" id="loading">분석 중입니다...</div>
+    <div class="warning" id="warning"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>종목명</th>
+          <th>유사도 점수</th>
+          <th>비교기간 (일수)</th>
+          <th>데이터 포인트</th>
+        </tr>
+      </thead>
+      <tbody id="resultTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<th:block layout:fragment="pageScript">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("searchBtn");
+    const loading = document.getElementById("loading");
+    const warning = document.getElementById("warning");
+    const tbody = document.getElementById("resultTableBody");
+
+    btn.addEventListener("click", () => {
+        const company = document.getElementById("company").value.trim();
+        const start = document.getElementById("start").value;
+        const end = document.getElementById("end").value;
+        if (!company || !start || !end) { alert("모든 필드를 입력해주세요."); return; }
+
+        tbody.innerHTML = "";
+        warning.textContent = "";
+        loading.classList.add("active");
+
+        fetch(`/api/krx/similar-advanced?company=${encodeURIComponent(company)}&start=${start}&end=${end}`)
+            .then(res => res.json())
+            .then(data => {
+                loading.classList.remove("active");
+                if (!data || !data.results) { warning.textContent="결과 데이터가 없습니다."; return; }
+
+                if (data.warning) warning.textContent = data.warning;
+
+                data.results.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${item.file || '-'}</td>
+                        <td>${item.similarity !== undefined ? item.similarity.toFixed(4) : '-'}</td>
+                        <td>${item.dates ? item.dates.length : '-'}</td>
+                        <td>${item.prices ? item.prices.length : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                loading.classList.remove("active");
+                warning.textContent = "데이터 분석 중 오류가 발생했습니다.";
+                console.error(err);
+            });
+    });
+});
+</script>
+</th:block>
+</body>
+</html>

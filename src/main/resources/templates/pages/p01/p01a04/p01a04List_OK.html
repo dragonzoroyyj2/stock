@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default_layout}">
+
+<head>
+  <meta charset="UTF-8">
+  <title>P01A04 서버 리스트</title>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* ===============================================
+       전체 톤 & 기본 설정
+    =============================================== */
+    body {
+      font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      font-size: 0.95rem;
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    h2 { margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; }
+    .content-container { width: 100%; max-width: 1600px; margin: 0 auto; padding: 1rem 2%; box-sizing: border-box; }
+
+    /* ===============================================
+       검색 라인
+    =============================================== */
+    .toolbar { display: flex; justify-content: flex-start; align-items: center; margin-bottom: 0.8rem; }
+    .search-group { display: flex; align-items: center; gap: 6px; width: 100%; max-width: 900px; flex-wrap: nowrap; }
+    .search-group input { flex: 1 1 auto; min-width: 120px; padding: 0.5rem 0.8rem; border: 1px solid #ccc; border-radius: 6px; outline: none; background: #fff; transition: border-color 0.3s, box-shadow 0.2s; }
+    .search-group input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .search-group .btn { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 0.45rem 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 38px; height: 36px; flex-shrink: 0; transition: background 0.2s; }
+    .search-group .btn:hover { background: #1e40af; }
+    @media (max-width: 768px) { .search-group { max-width: 100%; } .search-group input { font-size: 0.85rem; padding: 0.4rem 0.6rem; } .search-group .btn { height: 32px; min-width: 34px; } }
+
+    /* ===============================================
+       총건수 + 기능 버튼
+    =============================================== */
+    .list-info { display: flex; justify-content: space-between; align-items: center; color: #4b5563; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .action-buttons { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    /* ===============================================
+       버튼
+    =============================================== */
+    .btn { background: #2563eb; color: white; border: none; border-radius: 6px; padding: 0.35rem 0.55rem; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; transition: background 0.2s; }
+    .btn i { font-size: 0.9rem; }
+    .btn:hover { background: #1e40af; }
+    .btn.red { background: #dc2626; }
+    .btn.red:hover { background: #b91c1c; }
+    .btn.gray { background: #6b7280; }
+    .btn.excel { background: #1d6f42; border: 1px solid #145a32; }
+    .btn.excel:hover { background: #145a32; }
+    .btn.excel i { color: #fff; font-size: 1rem; }
+
+    /* ===============================================
+       테이블
+    =============================================== */
+    .table-container { width: 100%; background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 10px; text-align: center; white-space: nowrap; }
+    th { background: #f9fafb; font-weight: 600; color: #374151; }
+    td a { color: #2563eb; cursor: pointer; text-decoration: underline; }
+
+    /* ===============================================
+       페이징
+    =============================================== */
+    .pagination { display: flex; justify-content: center; align-items: center; margin-top: 0.8rem; gap: 4px; overflow-x: auto; flex-wrap: wrap; }
+    .pagination button { border: 1px solid #d1d5db; background: white; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .pagination button.active { background: #2563eb; color: white; border-color: #2563eb; }
+
+    /* ===============================================
+       모달 공통
+    =============================================== */
+    .modal { display: none; position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.5); overflow-y: auto; padding: 2rem 1rem; }
+    .elegant-modal { background: #f9fafb; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.25); display: flex; flex-direction: column; width: 90%; max-width: 480px; margin: 3rem auto; max-height: 80vh; animation: fadeInUp 0.25s ease; overflow: hidden; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .elegant-header { background: linear-gradient(145deg, #e5e7eb, #f3f4f6); padding: 0.7rem 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d1d5db; }
+    .elegant-header h3 { margin: 0; font-weight: 600; font-size: 1rem; color: #111827; }
+    .close-btn { font-size: 1.3rem; cursor: pointer; color: #6b7280; transition: color 0.2s; }
+    .close-btn:hover { color: #111827; }
+    .elegant-body { padding: 1rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.8rem; }
+    .form-group { width: 100%; max-width: 90%; text-align: left; }
+    .form-group label { display: block; font-size: 0.9rem; color: #374151; margin-bottom: 0.3rem; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.55rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; background: white; box-sizing: border-box; }
+    .option-group { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .option-group label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+    .option-group input[type="radio"], .option-group input[type="checkbox"] { accent-color: #2563eb; width: 16px; height: 16px; }
+    .modal-footer.elegant-footer { background: #f3f4f6; border-top: 1px solid #d1d5db; padding: 0.8rem 1rem; display: flex; justify-content: flex-end; gap: 0.6rem; }
+  </style>
+</head>
+
+<body>
+<div layout:fragment="content">
+  <div class="content-container">
+    <h2>P01A04 서버 리스트</h2>
+
+    <!-- 검색라인 -->
+    <div class="toolbar">
+      <div class="search-group">
+        <input type="text" id="searchInput" placeholder="검색어 입력" />
+        <button id="searchBtn" class="btn"><i class="fas fa-search"></i></button>
+        <button class="btn"><i class="fas fa-filter"></i></button>
+        <button class="btn"><i class="fas fa-sync-alt"></i></button>
+      </div>
+    </div>
+
+    <!-- 총건수 + 기능버튼 -->
+    <div class="list-info">
+      <span id="totalCount">총 0건</span>
+      <div class="action-buttons">
+        <button id="excelBtn" class="btn excel" title="엑셀 다운로드"><i class="fa-solid fa-file-excel"></i></button>
+        <button id="addBtn" class="btn" title="추가"><i class="fas fa-plus"></i></button>
+        <button id="deleteSelectedBtn" class="btn red" title="삭제"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-container">
+      <table>
+        <thead>
+        <tr>
+          <th><input type="checkbox" id="checkAll" /></th>
+          <th>No</th>
+          <th>제목</th>
+          <th>담당자</th>
+          <th>등록일</th>
+        </tr>
+        </thead>
+        <tbody id="dataTable"></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+  </div>
+
+  <!-- 등록 모달 -->
+  <div id="addModal" class="modal">
+    <div class="elegant-modal">
+      <div class="elegant-header">
+        <h3>서버 등록</h3>
+        <span data-close="addModal" class="close-btn">&times;</span>
+      </div>
+      <div class="elegant-body">
+        <div class="form-group"><label>제목</label><input id="titleInput" /></div>
+        <div class="form-group"><label>담당자</label><input id="ownerInput" /></div>
+        <div class="form-group"><label>서버 종류</label>
+          <select id="serverType"><option>웹 서버</option><option>DB 서버</option><option>API 서버</option></select>
+        </div>
+        <div class="form-group"><label>운영 상태</label>
+          <div class="option-group">
+            <label><input type="radio" name="status" value="active" checked>운영</label>
+            <label><input type="radio" name="status" value="pause">중지</label>
+          </div>
+        </div>
+        <div class="form-group"><label>기능 옵션</label>
+          <div class="option-group">
+            <label><input type="checkbox">백업 활성화</label>
+            <label><input type="checkbox">자동 모니터링</label>
+          </div>
+        </div>
+        <div class="form-group"><label>등록일</label><input type="date" id="regDateInput" /></div>
+        <div class="form-group"><label>비고</label><textarea id="noteInput" rows="3"></textarea></div>
+      </div>
+      <div class="modal-footer elegant-footer">
+        <button id="saveBtn" class="btn">저장</button>
+        <button class="btn gray" data-close="addModal">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상세 / 수정 모달 -->
+  <div id="detailModal" class="modal">
+    <div class="elegant-modal">
+      <div class="elegant-header">
+        <h3>상세 정보</h3>
+        <span data-close="detailModal" class="close-btn">&times;</span>
+      </div>
+      <div class="elegant-body">
+        <div class="form-group"><label>No</label><input id="detailId" readonly /></div>
+        <div class="form-group"><label>제목</label><input id="detailTitle" /></div>
+        <div class="form-group"><label>담당자</label><input id="detailOwner" /></div>
+        <div class="form-group"><label>등록일</label><input id="detailRegDate" readonly /></div>
+        <div class="form-group"><label>서버 상태</label>
+          <select><option>정상</option><option>점검중</option></select>
+        </div>
+        <div class="form-group"><label>기능 옵션</label>
+          <div class="option-group">
+            <label><input type="checkbox">백업 활성화</label>
+            <label><input type="checkbox">자동 모니터링</label>
+          </div>
+        </div>
+        <div class="form-group"><label>비고</label><textarea id="detailNote" rows="3"></textarea></div>
+      </div>
+      <div class="modal-footer elegant-footer">
+        <button id="updateBtn" class="btn">수정</button>
+        <button class="btn gray" data-close="detailModal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 페이지별 스크립트 -->
+<th:block layout:fragment="pageScript">
+  <script src="/js/commonUnifiedList.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initUnifiedList({
+        mode: "p01a04",
+        apiUrl: "/api/p01a04",
+        tableBodySelector: "#dataTable",
+        paginationSelector: "#pagination",
+        searchInputSelector: "#searchInput",
+        searchBtnSelector: "#searchBtn",
+        addBtnSelector: "#addBtn",
+        modalId: "#addModal",
+        saveBtnSelector: "#saveBtn",
+        closeBtnSelector: "[data-close]",
+        checkAllSelector: "#checkAll",
+        deleteSelectedBtnSelector: "#deleteSelectedBtn",
+        detailModalId: "#detailModal",
+        detailFields: { id: "#detailId", title: "#detailTitle", owner: "#detailOwner", regDate: "#detailRegDate" },
+        updateBtnSelector: "#updateBtn",
+        excelBtnSelector: "#excelBtn",
+        columns: [
+          { key: "id", label: "No" },
+          { key: "title", label: "제목", isDetailLink: true },
+          { key: "owner", label: "담당자" },
+          { key: "regDate", label: "등록일" }
+        ],
+        pageSize: 6,
+        pageGroupSize: 5
+      });
+    });
+  </script>
+</th:block>
+</body>
+</html>

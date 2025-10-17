@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default_layout}">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRX 종목 조회</title>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      font-size: 0.95rem;
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 0.6rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .content-container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      margin-top: 0.3rem;
+      padding: 1rem 2%;
+      box-sizing: border-box;
+    }
+
+    button#fetchBtn {
+      margin-bottom: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button#fetchBtn:hover {
+      background-color: #2563eb;
+    }
+
+    input#searchInput {
+      padding: 0.4rem 0.6rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 250px;
+      margin-bottom: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    th, td {
+      padding: 0.6rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #f1f5f9;
+    }
+
+    @media (max-width: 1024px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      th { display: none; }
+      td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+      }
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        font-weight: 600;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div layout:fragment="content">
+  <div class="content-container">
+    <h2>📊 KRX 상장 종목 리스트</h2>
+    <p>총 <span id="totalCount">0</span>개 종목</p>
+
+    <!-- 검색 입력창 -->
+    <div>
+      <label for="searchInput" style="font-weight:600; margin-right:0.5rem;">회사명 검색:</label>
+      <input type="text" id="searchInput" placeholder="회사명을 입력하세요">
+    </div>
+
+    <button id="fetchBtn">KRX 조회</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>종목코드</th>
+          <th>회사명</th>
+          <th>상장일</th>
+          <th>업종</th>
+          <th>주요제품</th>
+          <th>대표자</th>
+          <th>지역</th>
+          <th>홈페이지</th>
+        </tr>
+      </thead>
+      <tbody id="krxTableBody">
+        <!-- AJAX로 데이터 채워짐 -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<th:block layout:fragment="pageScript">
+  <script>
+    let krxData = []; // 전체 데이터 저장
+
+    // KRX 조회 버튼 클릭
+    document.getElementById("fetchBtn").addEventListener("click", () => {
+      const btn = document.getElementById("fetchBtn");
+      btn.disabled = true;
+      btn.textContent = "조회 중...";
+
+      fetch("/api/krx")
+        .then(res => res.json())
+        .then(data => {
+          krxData = data; // 전체 데이터 저장
+          renderTable(data);
+
+          btn.disabled = false;
+          btn.textContent = "KRX 조회";
+        })
+        .catch(err => {
+          console.error(err);
+          btn.disabled = false;
+          btn.textContent = "KRX 조회";
+          alert("데이터 조회 중 오류가 발생했습니다.");
+        });
+    });
+
+    // 테이블 렌더링
+    function renderTable(data) {
+      const tbody = document.getElementById("krxTableBody");
+      const total = document.getElementById("totalCount");
+      tbody.innerHTML = "";
+      total.textContent = data.length;
+
+      data.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td data-label="종목코드">${item.code || ''}</td>
+          <td data-label="회사명">${item.name || ''}</td>
+          <td data-label="상장일">${item.listedDate || ''}</td>
+          <td data-label="업종">${item.sector || ''}</td>
+          <td data-label="주요제품">${item.product || ''}</td>
+          <td data-label="대표자">${item.ceo || ''}</td>
+          <td data-label="지역">${item.region || ''}</td>
+          <td data-label="홈페이지"><a href="${item.website || '#'}" target="_blank">${item.website || ''}</a></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 회사명 검색 필터링
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      const keyword = e.target.value.trim().toLowerCase();
+      const filtered = krxData.filter(item => item.name.toLowerCase().includes(keyword));
+      renderTable(filtered);
+    });
+  </script>
+</th:block>
+</body>
+</html>
