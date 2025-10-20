@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default_layout}">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>테스트 화면 1 - 유사 종목</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .content-container { max-width:1200px; margin:1rem auto; padding:1rem; }
+    .controls { display:flex; gap:10px; align-items:center; margin-bottom:1rem; }
+    input[type="date"] { padding:6px 8px; border-radius:6px; border:1px solid #ddd; }
+    button { padding:6px 10px; border-radius:6px; border: none; background:#2563eb; color:white; cursor:pointer; }
+    .chart-wrap { background:#fff; padding:12px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); height:500px; }
+  </style>
+</head>
+
+<body>
+<div layout:fragment="content">
+  <div class="content-container">
+    <h2>📊 테스트 화면 1 - 유사 종목 차트</h2>
+
+    <div class="controls">
+      <form id="periodForm" th:action="@{/pages/stock/test1}" method="get" style="display:flex; gap:8px; align-items:center;">
+        시작일:
+        <input type="date" name="start" th:value="${startDate}" />
+        종료일:
+        <input type="date" name="end" th:value="${endDate}" />
+        <button type="submit">분석 실행</button>
+      </form>
+      <div style="margin-left: auto; color:#6b7280;">(테스트용: 로컬 python/data 사용)</div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="stockChart1" width="1200" height="480"></canvas>
+    </div>
+  </div>
+</div>
+
+<th:block layout:fragment="pageScript">
+  <script th:inline="javascript">
+    let stockData = /*[[${stockData}]]*/ '[]';
+    if (typeof stockData === 'string') {
+      try { stockData = JSON.parse(stockData); } catch(e){ stockData = []; }
+    }
+
+    if (!Array.isArray(stockData) || stockData.length === 0) {
+      document.getElementById('stockChart1').parentElement.innerHTML =
+        '<div style="padding:30px;color:#6b7280;">유사종목 데이터가 없습니다. Python 스크립트를 먼저 실행하세요.</div>';
+    } else {
+      const labels = stockData[0].dates;
+      const datasets = stockData.map((item, idx) => ({
+        label: item.file.replace('.csv','') + ' (거리:' + Number(item.distance).toFixed(1) + ')',
+        data: item.prices,
+        borderColor: `hsl(${(idx*60)%360} 70% 45%)`,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 0
+      }));
+
+      const ctx = document.getElementById('stockChart1').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            title: { display: true, text: '유사 종목 비교 (상위 5개)' }
+          },
+          scales: {
+            x: { display: true, ticks: { maxRotation: 45, minRotation: 0 } }
+          }
+        }
+      });
+    }
+  </script>
+</th:block>
+</body>
+</html>

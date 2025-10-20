@@ -12,172 +12,14 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <style>
-    /* =========================
-       전체 기본 레이아웃
-    ========================= */
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #f9fafb;
-      color: #111827;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* =========================
-       상단바
-    ========================= */
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 50px; /* 상단바 높이 */
-      background: #f3f4f6;
-      color: #1f2937;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 1rem;
-      z-index: 4000;
-    }
-
-    header h1 {
-      margin:0;
-      font-size:1rem; /* 타이틀 크기 살짝 줄임 */
-      font-weight:600;
-      color: #1f2937;
-    }
-
-    /* =========================
-       오른쪽 버튼 그룹 (프로필, 타이머, 로그아웃)
-    ========================= */
-    .right-section {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-right: 1rem;
-      flex-shrink: 0;
-    }
-
-    .unified-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      height: 36px;
-      min-width: 36px;
-      padding: 0 10px;
-      background: #e5e7eb;
-      color: #1f2937;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      border: none;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-
-    .unified-btn i {
-      font-size: 16px;
-      color: #374151;
-    }
-
-    .session-refresh-btn { gap: 6px; }
-
-    /* =========================
-       메인 콘텐츠
-       - 상단바 아래 margin-top과 padding으로 인해 빈 공간 생기는 부분 조정
-    ========================= */
-    main {
-      flex: 1;
-      display: flex;
-      margin-top: 50px; /* 상단바 높이와 동일하게 설정 */
-      transition: all 0.3s ease;
-    }
-
-    .content {
-      flex: 1;
-      width: 100%;
-      background: #fff;
-      padding: 1rem; /* 전체 padding을 줄여서 꽉찬 느낌 */
-      min-height: calc(100vh - 50px - 40px); /* 상단50px + footer 40px 예상 */
-      transition: all 0.3s ease;
-    }
-
-    /* =========================
-       사이드바
-    ========================= */
-    .sidebar {
-      position: fixed;
-      top: 50px; /* 상단바 높이 */
-      left: 0;
-      width: 240px;
-      height: calc(100% - 50px);
-      background: #f3f4f6;
-      border-right: 1px solid #d1d5db;
-      overflow-y: auto;
-      transform: translateX(-240px);
-      transition: transform 0.3s ease;
-      z-index: 5000;
-    }
-
-    .sidebar.open {
-      transform: translateX(0);
-    }
-
-    /* =========================
-       오버레이 (사이드바)
-    ========================= */
-    #sidebarOverlay {
-      position: fixed;
-      top: 50px;
-      left: 0;
-      width: 100%;
-      height: calc(100% - 50px);
-      background: rgba(0, 0, 0, 0.3);
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease;
-      z-index: 4000;
-    }
-
-    #sidebarOverlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    /* =========================
-       하단 포함 (fragments/bottom)
-    ========================= */
-    footer {
-      background: #f3f4f6;
-      text-align: center;
-      padding: 0.8rem 0;
-      color: #6b7280;
-      font-size: 0.85rem;
-      border-top: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    /* =========================
-       반응형
-       - 모바일에서 padding 0.5rem 적용
-    ========================= */
-    @media(max-width:768px){
-      .content { padding:0.5rem; }
-      header { height:48px; padding:0 0.6rem; }
-      .right-section { gap:6px; }
-      .unified-btn { height:32px; font-size:12px; padding:0 6px; }
-      .unified-btn i { font-size:14px; }
-    }
-  </style>
+  <!-- =========================
+       공통 CSS
+  ========================= -->
+  <link rel="stylesheet" href="/css/commonLayout.css">
+  <link rel="stylesheet" href="/css/commonTable.css">
+  <link rel="stylesheet" href="/css/commonSearch.css">
+  <link rel="stylesheet" href="/css/commonPagination.css">
+  <link rel="stylesheet" href="/css/commonModal.css">
 </head>
 
 <body>
@@ -215,18 +57,19 @@
   </footer>
 
   <!-- =========================
-       공통 스크립트
+       공통 JS
   ========================= -->
+  <script src="/js/commonPagination_op.js"></script>
+  <script src="/js/commonUnifiedList_op.js"></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const sidebar = document.querySelector(".sidebar");
       const overlay = document.getElementById("sidebarOverlay");
 
-      // 사이드바 닫힌 상태로 시작
       sidebar.classList.remove("open");
       overlay.classList.remove("active");
 
-      // 전역 토글 함수
       window.toggleSidebar = function() {
         const isOpen = sidebar.classList.contains("open");
         if (isOpen) {
@@ -238,13 +81,11 @@
         }
       };
 
-      // 오버레이 클릭 시 닫기
       overlay.addEventListener("click", () => {
         sidebar.classList.remove("open");
         overlay.classList.remove("active");
       });
 
-      // 메뉴 클릭 시 닫기
       document.addEventListener("click", (e) => {
         if (e.target.closest(".sidebar a[href]")) {
           sidebar.classList.remove("open");
@@ -255,7 +96,7 @@
   </script>
 
   <!-- =========================
-       페이지별 스크립트
+       페이지별 JS
   ========================= -->
   <th:block layout:fragment="pageScript"></th:block>
 

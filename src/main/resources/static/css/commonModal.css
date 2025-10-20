@@ -1,0 +1,81 @@
+/* =========================
+   모달 공통
+========================= */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 6000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal .elegant-modal {
+  background-color: #fff;
+  margin: 60px auto;
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.elegant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.elegant-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.close-btn {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.elegant-body .form-group {
+  margin-bottom: 10px;
+}
+
+.elegant-body label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.elegant-body input,
+.elegant-body select,
+.elegant-body textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.option-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn.gray {
+  background: #e5e7eb;
+  color: #111827;
+}

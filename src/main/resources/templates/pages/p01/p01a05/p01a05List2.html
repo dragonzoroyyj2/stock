@@ -6,7 +6,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>P01A04 서버 리스트</title>
+  <title>P01A05 서버 리스트</title>
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -20,7 +20,7 @@
 <body>
 <div layout:fragment="content">
   <div class="content-container">
-    <h2>P01A04 서버 리스트</h2>
+    <h2>P01A05 서버 리스트</h2>
 
     <!-- 검색 라인 -->
     <div class="toolbar">
@@ -131,8 +131,8 @@
 <!-- 페이지별 초기화 -->
 <th:block layout:fragment="pageScript">
 
-  <script src="/js/commonPagination.js"></script>
-  <script src="/js/commonUnifiedList.js"></script>
+  <script src="/js/commonPagination_op.js"></script>
+  <script src="/js/commonUnifiedList_op.js"></script>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -154,8 +154,9 @@
       // 공용 리스트 초기화
       // ================================
       initUnifiedList({
-        mode: "server",               // server/client 선택
-        apiUrl: "/api/p01a04",
+        mode: "server",           // server / client	✅ client - [전체데이터 한 번에 로드]선택        
+        pagination: true,        // true / false 		✅ false  - 페이징 완전 비활성화
+        apiUrl: "/api/p01a05",
         tableBodySelector: "#dataTable",
         paginationSelector: "#pagination",
         searchInputSelector: "#searchInput",

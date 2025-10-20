@@ -1,0 +1,28 @@
+/* =========================
+   페이징
+========================= */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.pagination button:hover:not(.active) {
+  background: #f3f4f6;
+}

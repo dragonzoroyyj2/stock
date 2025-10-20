@@ -1,0 +1,34 @@
+/* =========================
+   검색 영역
+========================= */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-group input[type="text"] {
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
+.search-group .btn {
+  height: 32px;
+  min-width: 32px;
+  border: none;
+  background: #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-group .btn i {
+  font-size: 14px;
+}

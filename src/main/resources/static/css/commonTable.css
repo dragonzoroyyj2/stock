@@ -1,0 +1,37 @@
+/* =========================
+   테이블 기본 스타일
+========================= */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead {
+  background: #f3f4f6;
+}
+
+th, td {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+th input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+tbody tr:hover {
+  background: #f1f5f9;
+}
+
+tbody td a.detail-link {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: none;
+}

@@ -39,7 +39,8 @@ function initUnifiedList(config) {
     excelBtnSelector,
     columns,
     pageSize: configPageSize,
-    pageGroupSize: configGroupSize
+    pageGroupSize: configGroupSize,
+    pagination = true // ✅ 기본 true (false면 페이징 안함)
   } = config;
 
   let currentPage = 0;
@@ -72,22 +73,31 @@ function initUnifiedList(config) {
     currentPage = page;
     const search = $(searchInputSelector)?.value || "";
 
+    // -------------------------------
+    // 서버 모드
+    // -------------------------------
     if (mode === "server") {
-      // -------------------------------
-      // 서버 모드: 페이징 기반 조회
-      // -------------------------------
-      const url = `${apiUrl}?page=${page}&size=${pageSize}&search=${encodeURIComponent(search)}`;
       try {
+        const url = `${apiUrl}?page=${page}&size=${pageSize}&search=${encodeURIComponent(search)}&mode=${mode}&pagination=${pagination}`;
         const res = await fetch(url, fetchOptions("GET"));
         if (!res.ok) throw new Error("데이터 조회 실패");
         const data = await res.json();
         const content = data.content || [];
-        const totalPages = data.totalPages ?? Math.ceil((data.totalElements ?? content.length) / pageSize);
+
         renderTable(content);
-        totalPagesCache = totalPages;
-        renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
-        const totalCountEl = document.getElementById("totalCount");
-        if (totalCountEl) totalCountEl.textContent = `총 ${data.totalElements ?? (totalPages * pageSize)}건`;
+
+        const totalCountEl = $("#totalCount");
+        if (totalCountEl) totalCountEl.textContent = `총 ${data.totalElements ?? content.length}건`;
+
+        const pagingEl = $(paginationSelector);
+        if (pagination && pagingEl) {
+          const totalPages = data.totalPages ?? Math.ceil((data.totalElements ?? content.length) / pageSize);
+          totalPagesCache = totalPages;
+          renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
+        } else if (pagingEl) {
+          pagingEl.innerHTML = "";
+        }
+
       } catch (err) {
         console.error(err);
         alert("데이터 조회 중 오류 발생");
@@ -96,7 +106,7 @@ function initUnifiedList(config) {
     }
 
     // -------------------------------
-    // 클라이언트 모드: 전체 데이터 조회
+    // 클라이언트 모드
     // -------------------------------
     if (mode === "client") {
       try {
@@ -109,22 +119,28 @@ function initUnifiedList(config) {
         }
 
         const searchLower = search.toLowerCase();
-        const filtered = search
+        let filtered = search
           ? fullDataCache.filter(item =>
               Object.values(item).some(v => String(v ?? "").toLowerCase().includes(searchLower))
             )
           : fullDataCache;
 
-        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-        const start = page * pageSize;
-        const pageData = filtered.slice(start, start + pageSize);
-
+        // ✅ pagination 여부에 따라 slice 적용
+        const pageData = pagination ? filtered.slice(page * pageSize, (page + 1) * pageSize) : filtered;
         renderTable(pageData);
-        totalPagesCache = totalPages;
-        renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
 
-        const totalCountEl = document.getElementById("totalCount");
+        const totalCountEl = $("#totalCount");
         if (totalCountEl) totalCountEl.textContent = `총 ${filtered.length}건`;
+
+        const pagingEl = $(paginationSelector);
+        if (pagination && pagingEl) {
+          const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+          totalPagesCache = totalPages;
+          renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
+        } else if (pagingEl) {
+          pagingEl.innerHTML = "";
+        }
+
       } catch (err) {
         console.error(err);
         alert("데이터 로드 실패 (client mode)");
@@ -134,6 +150,7 @@ function initUnifiedList(config) {
 
     console.warn("알 수 없는 mode:", mode);
   }
+
 
   // ===============================
   // 테이블 렌더링
@@ -303,14 +320,8 @@ function initUnifiedList(config) {
     });
   });
 
-  // ===============================
-  // 초기 로드
-  // ===============================
   loadList(0);
 
-  // ===============================
-  // 리사이즈 시 페이징 재렌더링
-  // ===============================
   window.addEventListener("resize", () => {
     renderPagination(currentPage, totalPagesCache, paginationSelector, loadList, pageGroupSize);
   });
