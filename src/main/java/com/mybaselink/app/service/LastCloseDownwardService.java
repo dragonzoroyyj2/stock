@@ -12,89 +12,81 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+/**
+ * Python 스크립트를 호출하여 연속 하락 종목 조회 및 차트 반환 서비스
+ */
 @Service
-public class SimilarStockAdvancedService {
+public class LastCloseDownwardService {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // ▶ Python 실행 경로
+    // Python 실행 경로
     private final String pythonExe = "C:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python310\\python.exe";
-
-    // ▶ 실행할 Python 스크립트 경로
-    private final String scriptPath = "C:\\LocBootProject\\workspace\\MyBaseLink\\python\\find_similar_full.py";
+    // Python 스크립트 경로
+    private final String scriptPath = "C:\\LocBootProject\\workspace\\MyBaseLink\\python\\find_last_close_downward.py";
 
     /**
-     * 파이썬 스크립트를 호출하여 유사 종목 리스트를 조회합니다.
-     * ⭐ method: 선택한 유사도 계산 방식 전달
+     * Python 호출하여 상위 N 연속 하락 종목 리스트 조회
      */
-    public List<Map<String, Object>> fetchSimilar(String companyCode, String start, String end, int nSimilarStocks, String method) {
+    public List<Map<String, Object>> fetchLastCloseDownward(String start, String end, int topN) {
         try {
             String[] command = {
-                pythonExe,
-                "-u",
-                scriptPath,
-                "--base_symbol", companyCode,
-                "--start_date", start,
-                "--end_date", end,
-                "--n_similar", String.valueOf(nSimilarStocks),
-                "--method", method // ⭐ 추가
+                    pythonExe,
+                    "-u",
+                    scriptPath,
+                    "--start_date", start,
+                    "--end_date", end,
+                    "--topN", String.valueOf(topN)
             };
 
             JsonNode pythonResult = executePythonScript(command);
 
             if (pythonResult != null) {
                 if (pythonResult.has("error")) {
-                    System.err.println("파이썬 스크립트 실행 오류: " + pythonResult.get("error").asText());
-                    return List.of();
+                    throw new RuntimeException(pythonResult.get("error").asText());
                 }
-                return mapper.convertValue(pythonResult.get("similar_stocks"), new TypeReference<List<Map<String, Object>>>(){});
+                return mapper.convertValue(pythonResult.get("results"), new TypeReference<List<Map<String, Object>>>(){});
             } else {
-                System.err.println("파이썬 스크립트 실행 실패: 결과가 null입니다.");
-                return List.of();
+                throw new RuntimeException("Python 스크립트 결과가 null입니다.");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("유사 종목 조회 중 오류 발생: " + e.getMessage());
-            return List.of();
+            throw new RuntimeException("Python 스크립트 호출 실패: " + e.getMessage());
         }
     }
 
     /**
-     * 파이썬 스크립트를 호출하여 개별 종목 차트 이미지를 Base64 문자열로 조회합니다.
+     * Python 호출하여 개별 종목 차트 Base64 반환
      */
-    public String fetchChart(String baseSymbol, String compareSymbol, String start, String end) {
+    public String fetchChart(String baseSymbol, String start, String end) {
         try {
             String[] command = {
-                pythonExe,
-                "-u",
-                scriptPath,
-                "--base_symbol", baseSymbol,
-                "--start_date", start,
-                "--end_date", end,
-                "--compare_symbol", compareSymbol
+                    pythonExe,
+                    "-u",
+                    scriptPath,
+                    "--base_symbol", baseSymbol,
+                    "--start_date", start,
+                    "--end_date", end
             };
 
             JsonNode pythonResult = executePythonScript(command);
 
             if (pythonResult != null) {
                 if (pythonResult.has("error")) {
-                    System.err.println("파이썬 스크립트 실행 오류: " + pythonResult.get("error").asText());
-                    return null;
+                    throw new RuntimeException(pythonResult.get("error").asText());
                 }
                 return pythonResult.get("image_data").asText();
             } else {
-                System.err.println("파이썬 스크립트 실행 실패: 결과가 null입니다.");
-                return null;
+                throw new RuntimeException("Python 스크립트 결과가 null입니다.");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("차트 조회 중 오류 발생: " + e.getMessage());
-            return null;
+            throw new RuntimeException("차트 생성 실패: " + e.getMessage());
         }
     }
 
     /**
-     * 파이썬 스크립트를 실행하고 표준 출력을 JSON으로 파싱합니다.
+     * Python 스크립트 실행 및 JSON 파싱
      */
     private JsonNode executePythonScript(String[] command) throws IOException, InterruptedException, ExecutionException, TimeoutException {
         File scriptDir = new File("C:\\LocBootProject\\workspace\\MyBaseLink\\python");
@@ -132,22 +124,21 @@ public class SimilarStockAdvancedService {
             boolean finished = process.waitFor(180, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                throw new TimeoutException("Python process did not finish in time.");
+                throw new TimeoutException("Python 프로세스가 시간 내 종료되지 않았습니다.");
             }
             int exitCode = process.exitValue();
             if (exitCode != 0) {
-                throw new RuntimeException("Python script execution failed with exit code: " + exitCode + " Output: " + pythonOutput);
+                throw new RuntimeException("Python 스크립트 종료 코드: " + exitCode + ", 출력: " + pythonOutput);
             }
         } finally {
             executor.shutdown();
         }
 
         if (pythonOutput == null || pythonOutput.trim().isEmpty()) {
-            throw new RuntimeException("Python script produced no output.");
+            throw new RuntimeException("Python 스크립트 출력이 없습니다.");
         }
 
-        // ✅ 순수 JSON만 출력
-        System.out.println(pythonOutput);
+        System.out.println(pythonOutput); // ✅ 콘솔에도 출력
 
         return mapper.readTree(pythonOutput);
     }

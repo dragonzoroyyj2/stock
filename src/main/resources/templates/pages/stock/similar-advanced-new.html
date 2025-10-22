@@ -5,7 +5,7 @@
       layout:decorate="~{layout/default_layout}">
 <head>
   <meta charset="UTF-8">
-  <title>📊 유사 종목 분석</title>
+  <title>📊 유사 종목 분석 new </title>
 
   <style>
     .content-container { padding: 1rem; box-sizing: border-box; }
@@ -103,7 +103,7 @@
 <body>
 <div layout:fragment="content">
   <div class="content-container">
-    <h2>📊 유사 종목 분석</h2>
+    <h2>📊 유사 종목 분석 new </h2>
 
     <!-- 기준 종목 입력 -->
     <div class="search-row single-line">
@@ -316,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
     warning.textContent = "";
     resultTableBody.innerHTML = "";
 
-    fetch(`/api/krx/similar-advanced?companyCode=${companyCode}&start=${start}&end=${end}&nSimilarStocks=${nStocks}&method=${method}`, { signal })
+    fetch(`/api/krx/similar-advanced-new?companyCode=${companyCode}&start=${start}&end=${end}&nSimilarStocks=${nStocks}&method=${method}`, { signal })
       .then(res => res.json())
       .then(data => {
         overlayLoading.style.display = "none";
@@ -340,7 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
             chartPopup.style.display = "block";
             chartImage.src = "";
             chartImage.alt = "차트 불러오는 중...";
-            fetch(`/api/krx/similar-advanced/chart?baseSymbol=${companyCode}&compareSymbol=${item.ticker}&start=${start}&end=${end}`)
+            fetch(`/api/krx/similar-advanced-new/chart?baseSymbol=${companyCode}&compareSymbol=${item.ticker}&start=${start}&end=${end}`)
               .then(res => res.json())
               .then(chartData => {
                 if (chartData && chartData.image_data) chartImage.src = `data:image/png;base64,${chartData.image_data}`;

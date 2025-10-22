@@ -1,58 +1,48 @@
 package com.mybaselink.app.controller;
 
-import com.mybaselink.app.service.SimilarStockAdvancedService;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.mybaselink.app.service.SimilarStockAdvancedNewService;
+
 @RestController
 @RequestMapping("/api/krx")
-public class SimilarStockAdvancedController {
+public class SimilarStockAdvancedNewController {
 
-    private final SimilarStockAdvancedService service;
+    private final SimilarStockAdvancedNewService service;
 
-    public SimilarStockAdvancedController(SimilarStockAdvancedService service) {
+    public SimilarStockAdvancedNewController(SimilarStockAdvancedNewService service) {
         this.service = service;
     }
 
-    /**
-     * 유사 종목 분석
-     */
-    @GetMapping("/similar-advanced")
+    // 유사 종목 분석
+    @GetMapping("/similar-advanced-new")
     public ResponseEntity<Map<String, Object>> getSimilarStocks(
             @RequestParam String companyCode,
             @RequestParam String start,
             @RequestParam String end,
             @RequestParam(defaultValue = "10") int nSimilarStocks,
-            @RequestParam(defaultValue = "cosine") String method // ⭐ JS 선택값 전달
+            @RequestParam(defaultValue = "cosine") String method
     ) {
         try {
-            // ⭐ 선택한 유사도 계산 방식(method)을 서비스로 전달
             List<Map<String,Object>> results = service.fetchSimilar(companyCode, start, end, nSimilarStocks, method);
-
-            Map<String, Object> responseBody = Map.of(
-                "base_symbol", companyCode,
-                "similar_stocks", results
-            );
-
-            return new ResponseEntity<>(responseBody, HttpStatus.OK);
-
+            return ResponseEntity.ok(Map.of(
+                    "base_symbol", companyCode,
+                    "similar_stocks", results
+            ));
         } catch (Exception e) {
             e.printStackTrace();
-            Map<String, Object> errorBody = Map.of(
-                "error", e.getMessage()
-            );
-            return new ResponseEntity<>(errorBody, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
-    /**
-     * 유사 종목 차트
-     */
-    @GetMapping("/similar-advanced/chart")
+    // 개별 종목 차트
+    @GetMapping("/similar-advanced-new/chart")
     public ResponseEntity<Map<String, Object>> getChart(
             @RequestParam String baseSymbol,
             @RequestParam String compareSymbol,
