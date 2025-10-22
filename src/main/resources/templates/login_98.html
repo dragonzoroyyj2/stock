@@ -6,6 +6,7 @@
 <title>MyBaseLink 로그인</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
 <!-- Favicon -->
 <link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png">
 <link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png">
@@ -24,6 +25,7 @@
 <meta name="msapplication-TileColor" content="#ffffff">
 <meta name="msapplication-TileImage" content="/favicon/ms-icon-144x144.png">
 <meta name="theme-color" content="#ffffff">
+
 <style>
 body {
   margin: 0;
@@ -62,6 +64,7 @@ body {
   margin: 0 auto 1.5px auto;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 #toggleRepeatIcon {
@@ -192,7 +195,6 @@ button:hover {
 let repeatChart = true;
 let animationId = null;
 let chartOpacity = 0.7;
-let holdTime=0;
 const icon = document.getElementById("toggleRepeatIcon");
 
 function updateIcon(){
@@ -243,10 +245,7 @@ document.getElementById("loginBtn").addEventListener("click", async ()=>{
 
 // ==================== 봉차트 ====================
 const candleCount=13;
-let candles=[],index=0,fadeOpacity=chartOpacity;
-const canvas=document.getElementById("candleChart");
-const ctx=canvas.getContext("2d");
-const width = 15;
+let candles=[],index=0,fadeOpacity=chartOpacity,holdTime=0;
 
 function resetCandles(){
   candles=[]; index=0; fadeOpacity=chartOpacity; holdTime=0;
@@ -255,38 +254,36 @@ function resetCandles(){
     let base=minH+i*5;
     let noise=Math.floor(Math.random()*10)-5;
     let height=base+noise;
-    const color=(i%2===0)?`rgba(59,130,246,${0.5+Math.random()*0.2})`:`rgba(239,68,68,${0.5+Math.random()*0.2})`;
+    const color=(i%2===0)?"rgba(59,130,246,0.7)":"rgba(239,68,68,0.7)";
     candles.push({targetHeight:height,currentHeight:0,color});
   }
   const lastHeight=Math.floor(candles[candleCount-2].targetHeight*1.3);
-  candles.push({targetHeight:lastHeight,currentHeight:0,color:`rgba(239,68,68,0.9)`});
+  candles.push({targetHeight:lastHeight,currentHeight:0,color:"rgba(239,68,68,0.9)"});
 }
+
+const canvas=document.getElementById("candleChart");
+const ctx=canvas.getContext("2d");
+const width = 15;
 
 function drawCandles(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const spacing=(canvas.width-candleCount*width)/(candleCount-1);
 
-  // 봉 그리기
   for(let i=0;i<=index;i++){
     const c=candles[i];
-    const speed=(i===candleCount-1)?6:3+Math.random()*2;
+    const speed=(i===candleCount-1)?6:4;
     if(c.currentHeight<c.targetHeight)c.currentHeight+=speed;
     if(c.currentHeight>c.targetHeight)c.currentHeight=c.targetHeight;
+
     const x=i*(width+spacing);
     const y=canvas.height-c.currentHeight;
     ctx.fillStyle=c.color;
     ctx.fillRect(x,y,width,c.currentHeight);
   }
 
-  // 라인 그라디언트
-  const gradient=ctx.createLinearGradient(0,0,canvas.width,0);
-  gradient.addColorStop(0,"rgba(248,113,113,"+fadeOpacity+")");
-  gradient.addColorStop(0.5,"rgba(59,130,246,"+fadeOpacity+")");
-  gradient.addColorStop(1,"rgba(248,113,113,"+fadeOpacity+")");
-
   // 지그재그 라인
   ctx.beginPath();
-  ctx.strokeStyle=gradient;
+  ctx.strokeStyle=`rgba(248,113,113,${fadeOpacity})`;
   ctx.lineWidth=2;
   for(let i=0;i<=index;i++){
     const c=candles[i];
@@ -297,33 +294,21 @@ function drawCandles(){
   }
   ctx.stroke();
 
-  // 마지막 화살표 + 반짝임 전체
+  // 마지막 화살표 중앙
   if(index>=candleCount-1){
     const last=candles[candleCount-1];
     const lx=canvas.width-width/2-1;
     const ly=canvas.height-last.currentHeight-10;
-    const arrowWidth=Math.min(22,canvas.width-lx-2);
-    const arrowHeight=14;
+    const arrowWidth=Math.min(16,canvas.width-lx-2);
+    const arrowHeight=12;
 
-    const glowAlpha=0.5+0.5*Math.sin(Date.now()/100);
-    // 화살표
     ctx.beginPath();
     ctx.moveTo(lx, ly-arrowHeight/2);
     ctx.lineTo(lx, ly+arrowHeight/2);
     ctx.lineTo(lx+arrowWidth, ly);
     ctx.closePath();
-    ctx.fillStyle=`rgba(248,113,113,${glowAlpha})`;
+    ctx.fillStyle=`rgba(248,113,113,${fadeOpacity})`;
     ctx.fill();
-
-    // 라인 끝점 반짝임
-    ctx.fillStyle=`rgba(255,255,255,${0.2+0.3*Math.sin(Date.now()/80)})`;
-    for(let i=0;i<5;i++){
-      const offsetX=Math.random()*2;
-      const offsetY=Math.random()*2-1;
-      ctx.beginPath();
-      ctx.arc(lx+arrowWidth, ly+offsetY,1.5,0,2*Math.PI);
-      ctx.fill();
-    }
   }
 
   if(index<candleCount-1 && candles[index].currentHeight>=candles[index].targetHeight) index++;

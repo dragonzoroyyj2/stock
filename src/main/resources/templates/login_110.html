@@ -6,6 +6,7 @@
 <title>MyBaseLink 로그인</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
 <!-- Favicon -->
 <link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png">
 <link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png">
@@ -24,6 +25,7 @@
 <meta name="msapplication-TileColor" content="#ffffff">
 <meta name="msapplication-TileImage" content="/favicon/ms-icon-144x144.png">
 <meta name="theme-color" content="#ffffff">
+
 <style>
 body {
   margin: 0;
@@ -62,6 +64,7 @@ body {
   margin: 0 auto 1.5px auto;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 #toggleRepeatIcon {
@@ -244,9 +247,6 @@ document.getElementById("loginBtn").addEventListener("click", async ()=>{
 // ==================== 봉차트 ====================
 const candleCount=13;
 let candles=[],index=0,fadeOpacity=chartOpacity;
-const canvas=document.getElementById("candleChart");
-const ctx=canvas.getContext("2d");
-const width = 15;
 
 function resetCandles(){
   candles=[]; index=0; fadeOpacity=chartOpacity; holdTime=0;
@@ -262,6 +262,10 @@ function resetCandles(){
   candles.push({targetHeight:lastHeight,currentHeight:0,color:`rgba(239,68,68,0.9)`});
 }
 
+const canvas=document.getElementById("candleChart");
+const ctx=canvas.getContext("2d");
+const width = 15;
+
 function drawCandles(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const spacing=(canvas.width-candleCount*width)/(candleCount-1);
@@ -272,6 +276,7 @@ function drawCandles(){
     const speed=(i===candleCount-1)?6:3+Math.random()*2;
     if(c.currentHeight<c.targetHeight)c.currentHeight+=speed;
     if(c.currentHeight>c.targetHeight)c.currentHeight=c.targetHeight;
+
     const x=i*(width+spacing);
     const y=canvas.height-c.currentHeight;
     ctx.fillStyle=c.color;
@@ -297,16 +302,15 @@ function drawCandles(){
   }
   ctx.stroke();
 
-  // 마지막 화살표 + 반짝임 전체
+  // 마지막 화살표 중앙
   if(index>=candleCount-1){
     const last=candles[candleCount-1];
     const lx=canvas.width-width/2-1;
     const ly=canvas.height-last.currentHeight-10;
-    const arrowWidth=Math.min(22,canvas.width-lx-2);
+    const arrowWidth=Math.min(20,canvas.width-lx-2);
     const arrowHeight=14;
 
-    const glowAlpha=0.5+0.5*Math.sin(Date.now()/100);
-    // 화살표
+    const glowAlpha=0.6+0.4*Math.sin(Date.now()/150);
     ctx.beginPath();
     ctx.moveTo(lx, ly-arrowHeight/2);
     ctx.lineTo(lx, ly+arrowHeight/2);
@@ -314,16 +318,6 @@ function drawCandles(){
     ctx.closePath();
     ctx.fillStyle=`rgba(248,113,113,${glowAlpha})`;
     ctx.fill();
-
-    // 라인 끝점 반짝임
-    ctx.fillStyle=`rgba(255,255,255,${0.2+0.3*Math.sin(Date.now()/80)})`;
-    for(let i=0;i<5;i++){
-      const offsetX=Math.random()*2;
-      const offsetY=Math.random()*2-1;
-      ctx.beginPath();
-      ctx.arc(lx+arrowWidth, ly+offsetY,1.5,0,2*Math.PI);
-      ctx.fill();
-    }
   }
 
   if(index<candleCount-1 && candles[index].currentHeight>=candles[index].targetHeight) index++;

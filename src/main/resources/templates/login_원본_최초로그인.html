@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MyBaseLink 로그인</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<!-- Favicon -->
+<link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/favicon/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/favicon/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/favicon/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/favicon/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/favicon/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/favicon/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+<link rel="manifest" href="/favicon/manifest.json">
+
+<style>
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af, #6b7280);
+  color: #fff;
+}
+
+/* 차트 영역 */
+.chart-container {
+  width: 100%;
+  max-width: 340px;
+  height: 140px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  margin-bottom: -38.5px; /* login-container와 1.5px 차이 */
+  z-index: 1;
+}
+
+.candle {
+  width: 8px;
+  border-radius: 3px;
+  opacity: 0;
+  animation: rise 3s ease-in-out infinite;
+}
+
+@keyframes rise {
+  0%, 100% { opacity: 0; transform: scaleY(0); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* 라인 + 번개형 화살표 */
+.line-chart {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.line-chart svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 로그인 카드 */
+.login-container {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 5vw;
+  padding: 2rem 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  text-align: center;
+  color: #fff;
+  animation: fadeIn 0.9s ease;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,0.2);
+  position: relative;
+  z-index: 2;
+}
+
+.login-container h2 {
+  margin-bottom: 1.2rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.5px;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.input-group input {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 40px 10px 14px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.input-group input:focus {
+  background: #fff;
+  box-shadow: 0 0 0 2px #9ca3af;
+}
+
+.input-group i {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 0.9rem;
+}
+
+button {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #6b7280, #4b5563);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  box-sizing: border-box;
+}
+
+button:hover {
+  background: linear-gradient(90deg, #4b5563, #374151);
+  transform: translateY(-2px);
+}
+
+.login-footer {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #d1d5db;
+}
+
+.login-footer a {
+  color: #e5e7eb;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 400px) {
+  .login-container {
+    padding: 1.8rem 1.2rem;
+    margin: 0 6vw;
+  }
+
+  .input-group input,
+  button {
+    padding-left: 14px;
+    padding-right: 40px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- 차트 영역 -->
+<div class="chart-container" id="chartContainer">
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+  <div class="candle"></div>
+
+  <div class="line-chart" id="lineChart">
+    <svg>
+      <polyline id="zigzag" fill="none" stroke="#f87171" stroke-width="2" />
+      <polygon id="arrowHead" points="" fill="#f87171" />
+    </svg>
+  </div>
+</div>
+
+<!-- 로그인 카드 -->
+<div class="login-container">
+  <h2>🔐 MyBaseLink 로그인</h2>
+
+  <div class="input-group">
+    <input type="text" id="username" placeholder="아이디" />
+    <i class="fas fa-user"></i>
+  </div>
+
+  <div class="input-group">
+    <input type="password" id="password" placeholder="비밀번호" />
+    <i class="fas fa-lock"></i>
+  </div>
+
+  <button id="loginBtn">로그인</button>
+
+  <div class="login-footer">
+    <p>계정이 없나요? <a href="#">회원가입</a></p>
+  </div>
+</div>
+
+<script>
+// ==================== 로그인 기능 ====================
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+  if (!username || !password) { alert("아이디와 비밀번호를 입력하세요."); return; }
+
+  try {
+    const res = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("sessionMillis", data.sessionMillis);
+      localStorage.setItem("serverTime", data.serverTime);
+      location.href = "/pages/main/base";
+    } else { alert("로그인 실패 ❌"); }
+  } catch (err) { console.error(err); alert("서버 오류가 발생했습니다."); }
+});
+
+// ==================== 봉차트 색상 + 라인화살표 ====================
+const chartContainer = document.getElementById("chartContainer");
+const candles = chartContainer.querySelectorAll(".candle");
+const zigzag = document.getElementById("zigzag");
+const arrowHead = document.getElementById("arrowHead");
+
+const candleColors = ['#3b82f6','#ef4444','#3b82f6','#ef4444','#3b82f6','#ef4444','#3b82f6','#ef4444','#3b82f6','#ef4444'];
+candleColors[9] = '#ef4444'; // 마지막 봉 빨강
+
+candles.forEach((c, i) => {
+  c.style.background = candleColors[i];
+  c.style.height = (Math.random()*60+20) + 'px';
+  c.style.animationDelay = (i*0.3) + 's';
+});
+
+// 지그재그 라인 업데이트
+function updateLine() {
+  const points = [];
+  const parentRect = chartContainer.getBoundingClientRect();
+  candles.forEach((c,i)=>{
+    const x = (i+0.5)*(parentRect.width/candles.length);
+    const y = parentRect.height - c.offsetHeight - 10;
+    points.push([x,y]);
+  });
+
+  zigzag.setAttribute("points", points.map(p=>p.join(",")).join(" "));
+
+  if(points.length){
+    const [x,y] = points[points.length-1];
+    const size = 12;
+    arrowHead.setAttribute("points", `${x},${y} ${x-size},${y+size*0.6} ${x+size},${y+size*0.6}`);
+  }
+}
+
+setInterval(updateLine,50);
+</script>
+
+</body>
+</html>

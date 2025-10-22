@@ -41,7 +41,7 @@ public class SecurityConfig {
 
         // 정적 리소스 허용 경로
         String[] staticResources = {
-                "/common/**", "/css/**", "/js/**", "/images/**", "/test_report/**", "/favicon.ico"
+                "/common/**", "/css/**", "/js/**", "/images/**","/favicon/**", "/test_report/**", "/favicon.ico", "/apple-icon-*.png", "/android-icon-*.png", "/manifest.json"
         };
 
         // 로그인 없이 접근 가능한 페이지 및 API

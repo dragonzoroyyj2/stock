@@ -40,6 +40,9 @@
   </div>
 
   <style>
+    /* =========================
+       기존 스타일 모두 유지
+    ========================= */
     .top-bar { display:flex; justify-content:space-between; align-items:center; padding:0 1rem; height:50px; background:#f3f4f6; border-bottom:1px solid #d1d5db; z-index:4000; color:#111827; }
     .left-section { display:flex; align-items:center; gap:10px; }
     .top-bar h1 { margin:0; font-size:1.1rem; font-weight:600; }
@@ -86,6 +89,7 @@
       let token = localStorage.getItem("token");
       let sessionExpireAt = parseInt(localStorage.getItem("sessionMillis"));
       let refreshing = false;
+      let alertShown = false; // ✅ alert 중복 방지
 
       // =========================
       // 세션 타이머 업데이트
@@ -96,9 +100,12 @@
 
         if(remaining <=0){
           timerEl.textContent="00:00";
-          alert("세션 만료. 다시 로그인하세요.");
-          localStorage.clear();
-          window.location.href="/login";
+          if(!alertShown){
+            alertShown = true; // ✅ alert 한번만 실행
+            alert("세션 만료. 다시 로그인하세요.");
+            localStorage.clear();
+            window.location.href="/login";
+          }
           return;
         }
 
@@ -125,7 +132,7 @@
       // 안전한 세션 연장 (중복방지 + 영역 전체 색상 변경)
       // =========================
       const refreshSession = async ()=>{
-        if(refreshing || !token) return;
+        if(refreshing || !token) return; // ✅ 연속 클릭 방지
         refreshing = true;
 
         // 전체 영역 회색
@@ -199,7 +206,6 @@
       closeProfileBtn.addEventListener("click",()=>{ profileLayer.style.display="none"; });
       saveProfileBtn.addEventListener("click",()=>{ alert("프로필 저장 완료 ✅"); profileLayer.style.display="none"; });
       document.addEventListener("click",(e)=>{ if(!profileLayer.contains(e.target) && e.target!==profileBtn) profileLayer.style.display="none"; });
-
     });
   </script>
 </div>
