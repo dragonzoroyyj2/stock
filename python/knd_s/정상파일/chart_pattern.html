@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default_layout}">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 KRX 차트 패턴 조회</title>
+  <style>
+    /* =======================
+       공통 레이아웃 / 스타일 (similar-advanced.html 기반)
+       ======================= */
+    .content-container { padding: 1rem; box-sizing: border-box; }
+    .search-row { display: flex; flex-wrap: wrap; gap:0.5rem; margin-bottom:0.5rem; align-items:center; }
+    .search-row.single-line { flex-wrap: nowrap; overflow-x:auto; }
+    .search-row input[type=date],
+    .search-row input[type=number],
+    .search-row select,
+    .search-row button { padding:0.45rem 0.7rem; border-radius:6px; border:1px solid #ccc; box-sizing:border-box; }
+    .stock-name-input { flex:1; min-width:120px; max-width:100%; }
+    .stock-code-input { width:90px; min-width:60px; text-align:center; }
+    .search-row button { flex-shrink:0; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
+
+    @media (max-width: 400px) {
+      .search-row.single-line button { width:35px; padding:0.45rem; }
+      .search-row.single-line button span { display:none; }
+      .search-row input[type=date], .search-row input[type=number], .search-row select { min-width:60px; width:auto; flex:1; }
+    }
+
+    .table-container { padding-left:0; padding-right:0; margin-top:1rem; overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; margin:0; }
+    #resultTablePattern tbody tr { border-bottom:1px solid #d1d5db; cursor:pointer; }
+
+    #warningPattern { font-weight:600; margin-bottom:0.5rem; }
+
+    /* 상태 메시지 스타일 */
+    .msg-success { color: #16a34a; } /* 초록 */
+    .msg-error { color: #dc2626; }   /* 빨강 */
+    .msg-info { color: #2563eb; }    /* 파랑 */
+
+    /* =======================
+       로딩 오버레이
+       ======================= */
+    #overlayLoading {
+      display:none;
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.3);
+      z-index:9999;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+    }
+    #overlayLoading .loading-box {
+      background:#fff;
+      padding:1rem 2rem;
+      border-radius:8px;
+      text-align:center;
+      box-shadow:0 0 10px rgba(0,0,0,0.2);
+    }
+    #overlayLoading .loading-icon { font-size:2rem; margin-bottom:0.5rem; animation:spin 1s linear infinite; }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+    #overlayLoading button { margin-top:0.5rem; padding:0.5rem 1rem; border:none; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer; }
+    #overlayLoading button:disabled { background:#999; cursor:default; }
+
+    /* =======================
+       팝업 스타일
+       ======================= */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); align-items:center; justify-content:center; z-index:9999; }
+    .elegant-modal { background:#fff; border-radius:8px; max-width:900px; width:90%; max-height:90%; overflow:auto; box-shadow:0 0 15px rgba(0,0,0,0.3); }
+    .elegant-header { display:flex; justify-content:space-between; align-items:center; padding:0.5rem 1rem; border-bottom:1px solid #d1d5db; }
+    .elegant-header h3 { margin:0; }
+    .close-btn { cursor:pointer; font-size:1.2rem; }
+    .elegant-body { padding:1rem; }
+  </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+  <div class="content-container">
+    <h1>KRX 차트 패턴 조회</h1>
+
+    <!-- 검색/조회 영역 -->
+    <div class="search-row">
+        <label for="patternSelect">패턴 종류:</label>
+        <select id="patternSelect">
+            <option value="head_and_shoulders">헤드앤숄더</option>
+            <option value="inverse_head_and_shoulders">역헤드앤숄더</option>
+            <option value="double_top">이중 천정</option>
+            <option value="double_bottom">이중 바닥</option>
+            <option value="cup_and_handle">컵앤핸들</option>
+        </select>
+
+        <label for="rangeSelectPattern">기간 선택:</label>
+        <select id="rangeSelectPattern">
+            <option value="90">3개월</option>
+            <option value="180">6개월</option>
+            <option value="365" selected>1년</option>
+            <option value="730">2년</option>
+        </select>
+
+        <label for="startPattern">시작일:</label>
+        <input type="date" id="startPattern" required>
+        <label for="endPattern">종료일:</label>
+        <input type="date" id="endPattern" required>
+
+        <label for="nStocksPattern">상위 N개:</label>
+        <input type="number" id="nStocksPattern" value="10" min="1" max="50">
+
+        <button id="searchBtnPattern" class="btn">분석 시작</button>
+    </div>
+
+    <div id="warningPattern" class="warning"></div>
+
+    <div class="table-container">
+        <table id="resultTablePattern">
+            <thead>
+                <tr>
+                    <th>종목 코드</th>
+                    <th>종목명</th>
+                    <th>패턴</th>
+                </tr>
+            </thead>
+            <tbody id="resultTableBodyPattern"></tbody>
+        </table>
+    </div>
+
+    <!-- 차트 팝업 -->
+    <div class="modal" id="chartPopup">
+        <div class="elegant-modal">
+            <div class="elegant-header">
+                <h3>차트 보기</h3>
+                <span class="close-btn" data-close="chartPopup">&times;</span>
+            </div>
+            <div class="elegant-body">
+                <img id="chartImage" src="" alt="차트 이미지" style="max-width:100%;border-radius:8px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="overlayLoading">
+        <div class="loading-box">
+            <div class="loading-icon">⌛</div>
+            <div>분석 중입니다...</div>
+            <button id="cancelLoadingBtn">취소</button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<th:block layout:fragment="pageScript">
+<script>
+let intervalId;
+const searchBtnPattern = document.getElementById('searchBtnPattern');
+const patternSelect = document.getElementById('patternSelect');
+const rangeSelectPattern = document.getElementById('rangeSelectPattern');
+const startPattern = document.getElementById('startPattern');
+const endPattern = document.getElementById('endPattern');
+const nStocksPattern = document.getElementById('nStocksPattern');
+const warningPattern = document.getElementById('warningPattern');
+const resultTableBodyPattern = document.getElementById('resultTableBodyPattern');
+const overlayLoading = document.getElementById('overlayLoading');
+const chartPopup = document.getElementById('chartPopup');
+const chartImage = document.getElementById('chartImage');
+const closeBtns = document.querySelectorAll('.close-btn');
+
+function setInitialDates() {
+    const today = new Date();
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    endPattern.value = formatDate(today);
+    startPattern.value = formatDate(oneYearAgo);
+}
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+setInitialDates();
+
+rangeSelectPattern.addEventListener('change', (e) => {
+    const days = parseInt(e.target.value, 10);
+    const today = new Date();
+    const pastDate = new Date(today);
+    pastDate.setDate(today.getDate() - days);
+    endPattern.value = formatDate(today);
+    startPattern.value = formatDate(pastDate);
+});
+
+searchBtnPattern.addEventListener('click', async function() {
+    const startDate = startPattern.value;
+    const endDate = endPattern.value;
+    const pattern = patternSelect.value;
+    const topN = nStocksPattern.value;
+    
+    if (!startDate || !endDate || !pattern || !topN) {
+        warningPattern.innerHTML = '⚠️ 모든 필드를 입력해주세요.';
+        warningPattern.className = 'msg-error';
+        return;
+    }
+    warningPattern.innerHTML = '⌛ 분석 시작...';
+    warningPattern.className = 'msg-info';
+    
+    overlayLoading.style.display = 'flex';
+    
+    try {
+        const formData = new URLSearchParams();
+        formData.append('start', startDate);
+        formData.append('end', endDate);
+        formData.append('pattern', pattern);
+        formData.append('topN', topN);
+
+        const response = await fetch(`/chart/patterns/start`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: formData
+        });
+
+        if (response.status === 429) {
+            displayMessage('⚠️ 분석중에 있습니다. 잠시 후 다시 시도해주세요.', 'error');
+            overlayLoading.style.display = 'none';
+            return;
+        }
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayMessage('✔️ 분석 요청 성공. 결과를 기다리는 중...', 'success');
+            const taskId = data.taskId;
+            await pollStatus(taskId);
+        } else {
+            displayMessage(`⚠️ ${data.message}`, 'error');
+        }
+    } catch (error) {
+        displayMessage(`⚠️ 네트워크 오류: ${error.message}`, 'error');
+    }
+});
+
+async function pollStatus(taskId) {
+    if (intervalId) clearInterval(intervalId);
+    
+    const pollFn = async () => {
+        try {
+            const response = await fetch(`/chart/task/status/${taskId}`);
+            
+            if (response.status === 429) {
+                displayMessage('⚠️ 분석중에 있습니다. 잠시 후 다시 시도해주세요.', 'error');
+                clearInterval(intervalId);
+                overlayLoading.style.display = 'none';
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'COMPLETED') {
+                clearInterval(intervalId);
+                overlayLoading.style.display = 'none';
+                displayMessage('✔️ 분석 완료', 'success');
+                displayResults(data.result);
+            } else if (data.status === 'FAILED') {
+                clearInterval(intervalId);
+                overlayLoading.style.display = 'none';
+                displayMessage(`⚠️ 분석 실패: ${data.errorMessage}`, 'error');
+            } else {
+                displayMessage('⌛ 분석 진행중...', 'info');
+            }
+        } catch (error) {
+            clearInterval(intervalId);
+            overlayLoading.style.display = 'none';
+            displayMessage(`⚠️ 상태 확인 중 네트워크 오류: ${error.message}`, 'error');
+        }
+    };
+
+    await pollFn();
+    intervalId = setInterval(pollFn, 2000);
+}
+
+function displayResults(results) {
+    resultTableBodyPattern.innerHTML = '';
+    if (results && results.length > 0) {
+        results.forEach(item => {
+            const row = document.createElement('tr');
+            const patterns = Array.isArray(item.patterns) ? item.patterns.join(', ') : item.patterns;
+            row.innerHTML = `
+                <td>${item.symbol}</td>
+                <td>${item.name}</td>
+                <td>${patterns}</td>
+            `;
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', () => {
+                showChartPopup(item.symbol, startPattern.value, endPattern.value);
+            });
+            resultTableBodyPattern.appendChild(row);
+        });
+    } else {
+        resultTableBodyPattern.innerHTML = '<tr><td colspan="3">결과가 없습니다.</td></tr>';
+    }
+}
+
+function displayMessage(msg, type) {
+    warningPattern.innerText = msg;
+    warningPattern.className = type === 'success' ? 'msg-success' :
+                               type === 'error' ? 'msg-error' : 'msg-info';
+}
+
+async function showChartPopup(symbol, startDate, endDate) {
+    const chartPopupBody = chartPopup.querySelector('.elegant-body');
+    chartPopupBody.innerHTML = '<div class="loading-message">차트 로딩 중...</div>';
+    chartPopup.style.display = 'flex';
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('baseSymbol', symbol);
+        formData.append('start', startDate);
+        formData.append('end', endDate);
+
+        const response = await fetch(`/chart/chart/fetch/start`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: formData
+        });
+
+        if (response.status === 429) {
+            chartPopupBody.innerHTML = `<p class="msg-error">⚠️ 차트 생성 작업 진행중입니다. 잠시 후 다시 시도해주세요.</p>`;
+            return;
+        }
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || '차트 생성 요청 실패');
+
+        const taskId = data.taskId;
+        const chartPollInterval = setInterval(async () => {
+            const statusResponse = await fetch(`/chart/task/status/${taskId}`);
+            if (statusResponse.status === 429) {
+                clearInterval(chartPollInterval);
+                chartPopupBody.innerHTML = `<p class="msg-error">⚠️ 차트 생성 작업 진행중입니다. 잠시 후 다시 시도해주세요.</p>`;
+                return;
+            }
+            const statusData = await statusResponse.json();
+            if (statusData.status === 'COMPLETED') {
+                clearInterval(chartPollInterval);
+                const imageData = statusData.result.image_data;
+                chartPopupBody.innerHTML = `<img id="chartImage" src="data:image/png;base64,${imageData}" alt="차트 이미지" style="max-width:100%;border-radius:8px;">`;
+            } else if (statusData.status === 'FAILED') {
+                clearInterval(chartPollInterval);
+                chartPopupBody.innerHTML = `<p class="msg-error">⚠️ 차트 로드 실패: ${statusData.errorMessage}</p>`;
+            }
+        }, 2000);
+    } catch (error) {
+        chartPopupBody.innerHTML = `<p class="msg-error">⚠️ 차트 생성 요청 실패: ${error.message}</p>`;
+    }
+}
+
+closeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const modalId = btn.dataset.close;
+        document.getElementById(modalId).style.display = 'none';
+        chartImage.src = '';
+    });
+});
+
+document.getElementById('cancelLoadingBtn').addEventListener('click', () => {
+    clearInterval(intervalId);
+    overlayLoading.style.display = 'none';
+    displayMessage('⚠️ 작업이 취소되었습니다.', 'error');
+});
+</script>
+</th:block>
+
+</body>
+</html>

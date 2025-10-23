@@ -1,0 +1,177 @@
+2025-10-23 16:59:04,503 - INFO - === 환경 체크 시작 ===
+2025-10-23 16:59:04,503 - INFO - OS: Windows 10.0.17763, Architecture: ('64bit', 'WindowsPE')
+2025-10-23 16:59:04,504 - INFO - Python Version: 3.10.5 (tags/v3.10.5:f377153, Jun  6 2022, 16:14:13) [MSC v.1929 64 bit (AMD64)]
+2025-10-23 16:59:04,504 - INFO - 필수 라이브러리 모두 설치됨
+2025-10-23 16:59:04,504 - INFO - === 환경 체크 완료 ===
+
+2025-10-23 16:59:28,244 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005930
+2025-10-23 16:59:28,296 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000660
+2025-10-23 16:59:28,343 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 373220
+2025-10-23 16:59:28,837 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000660 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,837 - WARNING - 데이터 없음: 000660 (SK하이닉스)
+2025-10-23 16:59:28,841 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 207940
+2025-10-23 16:59:28,843 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=373220 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,844 - WARNING - 데이터 없음: 373220 (LG에너지솔루션)
+2025-10-23 16:59:28,846 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005935
+2025-10-23 16:59:28,849 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005930 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,849 - WARNING - 데이터 없음: 005930 (삼성전자)
+2025-10-23 16:59:28,851 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 012450
+2025-10-23 16:59:28,876 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005380
+2025-10-23 16:59:28,933 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=207940 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,934 - WARNING - 데이터 없음: 207940 (삼성바이오로직스)
+2025-10-23 16:59:28,936 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 329180
+2025-10-23 16:59:28,944 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=012450 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,945 - WARNING - 데이터 없음: 012450 (한화에어로스페이스)
+2025-10-23 16:59:28,947 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 034020
+2025-10-23 16:59:28,964 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005935 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:28,965 - WARNING - 데이터 없음: 005935 (삼성전자우)
+2025-10-23 16:59:28,967 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000270
+2025-10-23 16:59:29,032 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=329180 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:29,033 - WARNING - 데이터 없음: 329180 (HD현대중공업)
+2025-10-23 16:59:29,043 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=034020 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:29,043 - WARNING - 데이터 없음: 034020 (두산에너빌리티)
+2025-10-23 16:59:29,054 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005380 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:29,054 - WARNING - 데이터 없음: 005380 (현대차)
+2025-10-23 16:59:29,057 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000270 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 16:59:29,058 - WARNING - 데이터 없음: 000270 (기아)
+2025-10-23 17:08:15,967 - INFO - === 환경 체크 시작 ===
+2025-10-23 17:08:15,968 - INFO - OS: Windows 10.0.17763, Architecture: ('64bit', 'WindowsPE')
+2025-10-23 17:08:15,969 - INFO - Python Version: 3.10.5 (tags/v3.10.5:f377153, Jun  6 2022, 16:14:13) [MSC v.1929 64 bit (AMD64)]
+2025-10-23 17:08:15,969 - INFO - 필수 라이브러리 모두 설치됨
+2025-10-23 17:08:15,969 - INFO - === 환경 체크 완료 ===
+
+2025-10-23 17:08:33,703 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005930
+2025-10-23 17:08:33,716 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000660
+2025-10-23 17:08:33,888 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 373220
+2025-10-23 17:08:33,960 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 207940
+2025-10-23 17:08:34,081 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000660 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,082 - WARNING - 데이터 없음: 000660 (SK하이닉스)
+2025-10-23 17:08:34,083 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=373220 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,084 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005935
+2025-10-23 17:08:34,086 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005930 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,085 - WARNING - 데이터 없음: 373220 (LG에너지솔루션)
+2025-10-23 17:08:34,088 - WARNING - 데이터 없음: 005930 (삼성전자)
+2025-10-23 17:08:34,091 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 012450
+2025-10-23 17:08:34,107 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=207940 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,108 - WARNING - 데이터 없음: 207940 (삼성바이오로직스)
+2025-10-23 17:08:34,110 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 329180
+2025-10-23 17:08:34,178 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005935 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,179 - WARNING - 데이터 없음: 005935 (삼성전자우)
+2025-10-23 17:08:34,181 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 034020
+2025-10-23 17:08:34,184 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005380 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,185 - WARNING - 데이터 없음: 005380 (현대차)
+2025-10-23 17:08:34,187 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000270
+2025-10-23 17:08:34,188 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=012450 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,189 - WARNING - 데이터 없음: 012450 (한화에어로스페이스)
+2025-10-23 17:08:34,194 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=329180 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,195 - WARNING - 데이터 없음: 329180 (HD현대중공업)
+2025-10-23 17:08:34,281 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=034020 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,282 - WARNING - 데이터 없음: 034020 (두산에너빌리티)
+2025-10-23 17:08:34,286 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000270 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:08:34,287 - WARNING - 데이터 없음: 000270 (기아)
+2025-10-23 17:09:07,778 - INFO - === 환경 체크 시작 ===
+2025-10-23 17:09:07,779 - INFO - OS: Windows 10.0.17763, Architecture: ('64bit', 'WindowsPE')
+2025-10-23 17:09:07,779 - INFO - Python Version: 3.10.5 (tags/v3.10.5:f377153, Jun  6 2022, 16:14:13) [MSC v.1929 64 bit (AMD64)]
+2025-10-23 17:09:07,780 - INFO - 필수 라이브러리 모두 설치됨
+2025-10-23 17:09:07,780 - INFO - === 환경 체크 완료 ===
+
+2025-10-23 17:09:27,646 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005930
+2025-10-23 17:09:27,679 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000660
+2025-10-23 17:09:27,695 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 373220
+2025-10-23 17:09:27,783 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 207940
+2025-10-23 17:09:27,844 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000660 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,845 - WARNING - 데이터 없음: 000660 (SK하이닉스)
+2025-10-23 17:09:27,847 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005935
+2025-10-23 17:09:27,852 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=373220 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,852 - WARNING - 데이터 없음: 373220 (LG에너지솔루션)
+2025-10-23 17:09:27,854 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 012450
+2025-10-23 17:09:27,888 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005930 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,890 - WARNING - 데이터 없음: 005930 (삼성전자)
+2025-10-23 17:09:27,892 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005380
+2025-10-23 17:09:27,937 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005935 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,937 - WARNING - 데이터 없음: 005935 (삼성전자우)
+2025-10-23 17:09:27,941 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 329180
+2025-10-23 17:09:27,942 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=012450 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,943 - WARNING - 데이터 없음: 012450 (한화에어로스페이스)
+2025-10-23 17:09:27,945 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 034020
+2025-10-23 17:09:27,971 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=207940 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:27,972 - WARNING - 데이터 없음: 207940 (삼성바이오로직스)
+2025-10-23 17:09:27,975 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000270
+2025-10-23 17:09:28,008 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005380 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:28,009 - WARNING - 데이터 없음: 005380 (현대차)
+2025-10-23 17:09:28,033 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=329180 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:28,034 - WARNING - 데이터 없음: 329180 (HD현대중공업)
+2025-10-23 17:09:28,042 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=034020 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:28,042 - WARNING - 데이터 없음: 034020 (두산에너빌리티)
+2025-10-23 17:09:28,063 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000270 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:09:28,064 - WARNING - 데이터 없음: 000270 (기아)
+2025-10-23 17:15:09,815 - INFO - === 환경 체크 시작 ===
+2025-10-23 17:15:09,816 - INFO - OS: Windows 10.0.17763, Architecture: ('64bit', 'WindowsPE')
+2025-10-23 17:15:09,816 - INFO - Python Version: 3.10.5 (tags/v3.10.5:f377153, Jun  6 2022, 16:14:13) [MSC v.1929 64 bit (AMD64)]
+2025-10-23 17:15:09,816 - INFO - 필수 라이브러리 모두 설치됨
+2025-10-23 17:15:09,816 - INFO - === 환경 체크 완료 ===
+
+2025-10-23 17:15:27,230 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005930
+2025-10-23 17:15:27,235 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000660
+2025-10-23 17:15:27,347 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 373220
+2025-10-23 17:15:27,377 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 207940
+2025-10-23 17:15:27,557 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005930 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,558 - WARNING - 데이터 없음: 005930 (삼성전자)
+2025-10-23 17:15:27,560 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005935
+2025-10-23 17:15:27,565 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000660 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,567 - WARNING - 데이터 없음: 000660 (SK하이닉스)
+2025-10-23 17:15:27,569 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 012450
+2025-10-23 17:15:27,572 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=207940 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,573 - WARNING - 데이터 없음: 207940 (삼성바이오로직스)
+2025-10-23 17:15:27,575 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005380
+2025-10-23 17:15:27,577 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=373220 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,578 - WARNING - 데이터 없음: 373220 (LG에너지솔루션)
+2025-10-23 17:15:27,587 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 329180
+2025-10-23 17:15:27,659 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005935 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,660 - WARNING - 데이터 없음: 012450 (한화에어로스페이스)
+2025-10-23 17:15:27,662 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 034020
+2025-10-23 17:15:27,663 - WARNING - 데이터 없음: 005935 (삼성전자우)
+2025-10-23 17:15:27,664 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000270
+2025-10-23 17:15:27,672 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005380 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,675 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=329180 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,676 - WARNING - 데이터 없음: 329180 (HD현대중공업)
+2025-10-23 17:15:27,751 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=034020 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,752 - WARNING - 데이터 없음: 034020 (두산에너빌리티)
+2025-10-23 17:15:27,760 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000270 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:15:27,761 - WARNING - 데이터 없음: 000270 (기아)
+2025-10-23 17:28:53,373 - INFO - === 환경 체크 시작 ===
+2025-10-23 17:28:53,374 - INFO - OS: Windows 10.0.17763, Architecture: ('64bit', 'WindowsPE')
+2025-10-23 17:28:53,375 - INFO - Python Version: 3.10.5 (tags/v3.10.5:f377153, Jun  6 2022, 16:14:13) [MSC v.1929 64 bit (AMD64)]
+2025-10-23 17:28:53,375 - INFO - 필수 라이브러리 모두 설치됨
+2025-10-23 17:28:53,375 - INFO - === 환경 체크 완료 ===
+
+2025-10-23 17:29:14,396 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005930
+2025-10-23 17:29:14,454 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000660
+2025-10-23 17:29:14,722 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 373220
+2025-10-23 17:29:14,950 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=373220 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:14,950 - WARNING - 데이터 없음: 373220 (LG에너지솔루션)
+2025-10-23 17:29:14,953 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 207940
+2025-10-23 17:29:14,963 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005930 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:14,964 - WARNING - 데이터 없음: 005930 (삼성전자)
+2025-10-23 17:29:14,966 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005935
+2025-10-23 17:29:14,971 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000660 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:14,972 - WARNING - 데이터 없음: 000660 (SK하이닉스)
+2025-10-23 17:29:14,973 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 012450
+2025-10-23 17:29:15,037 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=207940 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,037 - WARNING - 데이터 없음: 207940 (삼성바이오로직스)
+2025-10-23 17:29:15,039 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 005380
+2025-10-23 17:29:15,056 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=012450 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,057 - WARNING - 데이터 없음: 012450 (한화에어로스페이스)
+2025-10-23 17:29:15,059 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 329180
+2025-10-23 17:29:15,090 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005935 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,090 - WARNING - 데이터 없음: 005935 (삼성전자우)
+2025-10-23 17:29:15,092 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 034020
+2025-10-23 17:29:15,132 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=005380 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,133 - WARNING - 데이터 없음: 005380 (현대차)
+2025-10-23 17:29:15,135 - INFO - FinanceDataReader에서 데이터 가져오기 시작: 000270
+2025-10-23 17:29:15,151 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=329180 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,152 - WARNING - 데이터 없음: 329180 (HD현대중공업)
+2025-10-23 17:29:15,182 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=034020 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,183 - WARNING - 데이터 없음: 034020 (두산에너빌리티)
+2025-10-23 17:29:15,226 - ERROR - 통신(네트워크/SSL) 오류 발생: HTTPSConnectionPool(host='fchart.stock.naver.com', port=443): Max retries exceeded with url: /sise.nhn?timeframe=day&count=6000&requestType=0&symbol=000270 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:997)')))
+2025-10-23 17:29:15,227 - WARNING - 데이터 없음: 000270 (기아)

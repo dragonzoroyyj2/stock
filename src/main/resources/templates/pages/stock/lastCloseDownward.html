@@ -7,32 +7,20 @@
   <meta charset="UTF-8">
   <title>📊 연속 하락 종목 조회</title>
   <style>
-    /* 전체 컨테이너 */
     .content-container { padding: 1rem; box-sizing: border-box; }
-
-    /* 검색 영역 스타일 */
     .search-row { display: flex; flex-wrap: wrap; gap:0.5rem; margin-bottom:0.5rem; align-items:center; }
     .search-row label { margin-right:0.3rem; font-weight:600; }
-
-    /* 입력 필드 스타일 */
     .search-row input[type=date], .search-row input[type=number], .search-row select, .search-row button {
-      padding:0.45rem 0.7rem;
-      border-radius:6px;
-      border:1px solid #ccc;
-      box-sizing:border-box;
-      flex-shrink:0;
+      padding:0.45rem 0.7rem; border-radius:6px; border:1px solid #ccc; flex-shrink:0; box-sizing:border-box;
     }
-
     .search-row input[type=date] { width:120px; min-width:80px; }
     .search-row input[type=number] { width:60px; min-width:50px; }
     .search-row button { cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.3rem; }
 
-    /* 테이블 영역 */
     .table-container { padding-left:0; padding-right:0; margin-top:1rem; overflow-x:auto; }
     table { width:100%; border-collapse:collapse; margin:0; }
     #resultTable tbody tr { border-bottom:1px solid #d1d5db; cursor:pointer; }
 
-    /* 로딩 오버레이 */
     #overlayLoading { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center; flex-direction:column; }
     #overlayLoading .loading-box { background:#fff; padding:1rem 2rem; border-radius:8px; text-align:center; box-shadow:0 0 10px rgba(0,0,0,0.2); }
     #overlayLoading .loading-icon { font-size:2rem; margin-bottom:0.5rem; animation:spin 1s linear infinite; }
@@ -86,7 +74,7 @@
   <div class="modal" id="chartPopup">
     <div class="elegant-modal">
       <div class="elegant-header">
-        <h3>유사 종목 차트</h3>
+        <h3>종목 차트</h3>
         <span class="close-btn" data-close="chartPopup">&times;</span>
       </div>
       <div class="elegant-body">
@@ -105,7 +93,6 @@
   </div>
 </div>
 
-<!-- JS 스크립트 -->
 <th:block layout:fragment="pageScript">
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -121,21 +108,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const cancelLoadingBtn = document.getElementById("cancelLoadingBtn");
   const rangeSelect = document.getElementById("rangeSelect");
 
-  let currentController = null;
-
-  // 오늘 기준 날짜 세팅
+  let pollingInterval;
+  let taskId;
+  
   const today = new Date();
   function setStartEnd(daysAgo){
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysAgo);
-    startInput.value = start.toISOString().substring(0,10);
-    endInput.value = today.toISOString().substring(0,10);
+    if (startInput) {
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysAgo);
+      startInput.value = start.toISOString().substring(0,10);
+    }
+    if (endInput) {
+      endInput.value = today.toISOString().substring(0,10);
+    }
   }
-  setStartEnd(parseInt(rangeSelect.value));
 
-  // 기간 select 변경 시 자동 업데이트
-  rangeSelect.addEventListener("change", ()=> { setStartEnd(parseInt(rangeSelect.value)); });
+  if (rangeSelect) {
+      setStartEnd(parseInt(rangeSelect.value));
+      rangeSelect.addEventListener("change", ()=> { setStartEnd(parseInt(rangeSelect.value)); });
+  }
 
-  // 분석 버튼 클릭
+  // 작업 상태 폴링 함수
+  function pollTaskStatus(taskId, successCallback, errorCallback) {
+      pollingInterval = setInterval(() => {
+          fetch(`/api/krx/task/status?taskId=${taskId}`)
+              .then(res => res.json())
+              .then(data => {
+                  if (data.status === "COMPLETED") {
+                      clearInterval(pollingInterval);
+                      successCallback(data.result);
+                  } else if (data.status === "FAILED") {
+                      clearInterval(pollingInterval);
+                      errorCallback(new Error(data.error));
+                  }
+              })
+              .catch(err => {
+                  clearInterval(pollingInterval);
+                  errorCallback(err);
+              });
+      }, 2000); // 2초마다 폴링
+  }
+
   searchBtn.addEventListener("click", ()=> {
     const start = startInput.value;
     const end = endInput.value;
@@ -146,74 +158,87 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 기존 요청 취소
-    if(currentController) currentController.abort();
-    currentController = new AbortController();
-    const signal = currentController.signal;
-
+    if(pollingInterval) clearInterval(pollingInterval);
+    
     overlayLoading.style.display="flex";
     warning.textContent="";
     resultTableBody.innerHTML="";
-
-    fetch(`/api/krx/last-close-downward?start=${start}&end=${end}&topN=${nStocks}`, {signal})
-      .then(res=>res.json())
-      .then(data=>{
-        overlayLoading.style.display="none";
-        currentController = null;
-
-        if(data.error){
-          warning.textContent = `⚠️ ${data.error}`;
-          return;
-        }
-
-        if(!data || !Array.isArray(data.similar_stocks)){
-          warning.textContent="분석 실패 (응답 데이터 오류)";
-          return;
-        }
-
-        data.similar_stocks.forEach(item=>{
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${item.ticker||""}</td><td>${item.name||""}</td>`;
-          tr.addEventListener("click", ()=>{
-            chartPopup.style.display="block";
-            chartImage.src="";
-            chartImage.alt="차트 불러오는 중...";
-
-            fetch(`/api/krx/last-close-downward/chart?baseSymbol=${item.ticker}&start=${start}&end=${end}`)
-              .then(res=>res.json())
-              .then(chartData=>{
-                if(chartData.error){
-                  chartImage.alt = chartData.error;
-                } else if(chartData.image_data) {
-                  chartImage.src = `data:image/png;base64,${chartData.image_data}`;
-                } else {
-                  chartImage.alt="차트 데이터를 불러오지 못했습니다.";
-                }
-              })
-              .catch(err=>{ chartImage.alt="차트 로딩 오류"; console.error(err); });
+    
+    fetch(`/api/krx/last-close-downward/request?start=${start}&end=${end}&topN=${nStocks}`)
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(errorData => {
+            throw new Error(errorData.error);
           });
-          resultTableBody.appendChild(tr);
+        }
+        return res.json();
+      })
+      .then(data => {
+        taskId = data.taskId;
+        pollTaskStatus(taskId, (resultData) => {
+          overlayLoading.style.display="none";
+          if(!resultData || !Array.isArray(resultData)){
+            warning.textContent="분석 실패 (응답 데이터 오류)";
+            return;
+          }
+          resultTableBody.innerHTML = '';
+          resultData.forEach(item=>{
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${item.ticker || ""}</td><td>${item.name || ""}</td>`;
+            tr.addEventListener("click", ()=>{
+              chartPopup.style.display="block";
+              chartImage.src="";
+              chartImage.alt="차트 불러오는 중...";
+
+              fetch(`/api/krx/last-close-downward/chart/request?baseSymbol=${item.ticker}&start=${start}&end=${end}`)
+                .then(res => {
+                  if (!res.ok) {
+                    return res.json().then(errorData => {
+                      throw new Error(errorData.error);
+                    });
+                  }
+                  return res.json();
+                })
+                .then(chartTaskData => {
+                  pollTaskStatus(chartTaskData.taskId, (chartResult) => {
+                    if(chartResult && chartResult.error){
+                      chartImage.alt = chartResult.error;
+                    } else if(chartResult && chartResult.image_data) {
+                      chartImage.src = `data:image/png;base64,${chartResult.image_data}`;
+                    } else {
+                      chartImage.alt="차트 데이터를 불러오지 못했습니다.";
+                    }
+                  }, (err) => {
+                      chartImage.alt="차트 로딩 오류: " + err.message; console.error(err);
+                  });
+                })
+                .catch(err=>{ chartImage.alt="차트 로딩 오류: " + err.message; console.error(err); });
+            });
+            resultTableBody.appendChild(tr);
+          });
+        }, (err) => {
+          overlayLoading.style.display="none";
+          console.error(err);
+          warning.textContent="⚠️ " + err.message;
         });
       })
-      .catch(err=>{
+      .catch(err => {
         overlayLoading.style.display="none";
-        currentController=null;
-        if(err.name==="AbortError") warning.textContent="⚠️ 분석이 취소되었습니다.";
-        else { console.error(err); warning.textContent="서버 오류"; }
+        console.error(err);
+        warning.textContent="⚠️ " + err.message;
       });
   });
 
-  // 차트 팝업 닫기
   document.querySelectorAll("[data-close]").forEach(btn=>{
     btn.addEventListener("click", e=>{
       document.getElementById(e.target.dataset.close).style.display="none";
     });
   });
 
-  // 취소 버튼 클릭
   cancelLoadingBtn.addEventListener("click", ()=>{
-    if(currentController) currentController.abort();
+    if(pollingInterval) clearInterval(pollingInterval);
     overlayLoading.style.display="none";
+    warning.textContent="⚠️ 분석이 취소되었습니다.";
   });
 });
 </script>

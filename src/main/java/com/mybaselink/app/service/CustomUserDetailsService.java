@@ -33,11 +33,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .build();
         }
 
-        if ("user".equals(username)) {
+        if ("test".equals(username)) {
             return User.builder()
-                    .username("user")
-                    .password(encoder.encode("1111"))
-                    .authorities(Collections.singleton(() -> "ROLE_USER"))
+                    .username("test")
+                    .password(encoder.encode("1234"))
+                    //.authorities(Collections.singleton(() -> "ROLE_USER"))
+                    .authorities(Collections.singleton(() -> "ROLE_ADMIN"))
                     .build();
         }
 
