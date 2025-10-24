@@ -316,8 +316,10 @@ def main():
         if krx_listing is None:
             print(json.dumps({"error": "종목 목록을 가져오는 데 실패했습니다."}), file=sys.stderr)
             sys.exit(1)
-            
-        symbols = [(row['Symbol'], row['Name'], args.start_date, args.end_date, args.pattern) for _, row in krx_listing.iterrows()]
+        
+        symbols = [(row['Code'], row['Name'], args.start_date, args.end_date, args.pattern) for _, row in krx_listing.iterrows()]
+
+        
         
         results = []
         if args.parallel:

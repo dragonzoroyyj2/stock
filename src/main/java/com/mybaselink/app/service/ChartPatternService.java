@@ -1,4 +1,3 @@
-// C:\LocBootProject\workspace\MyBaseLink\src\main\java\com\mybaselink\app\service\ChartPatternService.java
 package com.mybaselink.app.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -20,9 +18,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class ChartPatternService {
@@ -34,6 +33,10 @@ public class ChartPatternService {
 
     private final String pythonExe = "C:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python310\\python.exe";
     private final String scriptPath = "C:\\LocBootProject\\workspace\\MyBaseLink\\python\\find_chart_patterns.py";
+    private static final long PYTHON_TIMEOUT_SECONDS = 300; // 파이썬 스크립트 타임아웃 5분 설정
+
+    // 파이썬 실행에 대한 전역 락
+    private static final ReentrantLock pythonLock = new ReentrantLock();
 
     public ChartPatternService(TaskStatusService taskStatusService, NewsDisclosureService newsDisclosureService) {
         this.taskStatusService = taskStatusService;
@@ -70,14 +73,10 @@ public class ChartPatternService {
         return CompletableFuture.completedFuture(null);
     }
 
-    /**
-     * 차트 이미지와 뉴스/공시 정보를 병렬로 가져오는 새로운 비동기 작업.
-     */
     @Async
     public CompletableFuture<Void> startFetchCombinedChartAndDataTask(String taskId, String baseSymbol, String start, String end) {
         taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("IN_PROGRESS", null, null));
-
-        // 차트 이미지와 뉴스/공시 정보를 비동기적으로 가져오는 CompletableFuture를 생성
+        
         CompletableFuture<String> chartFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 return fetchChart(baseSymbol, start, end);
@@ -88,7 +87,6 @@ public class ChartPatternService {
         });
         CompletableFuture<List<Map<String, String>>> newsDisclosureFuture = newsDisclosureService.getNewsAndDisclosures(baseSymbol);
 
-        // 두 작업이 모두 완료되면 결과를 합쳐서 TaskStatus에 저장
         CompletableFuture.allOf(chartFuture, newsDisclosureFuture)
                 .thenAcceptAsync(v -> {
                     try {
@@ -129,6 +127,9 @@ public class ChartPatternService {
     }
 
     private List<Map<String, Object>> executePythonForChartPatternList(String start, String end, String pattern, int topN) {
+        if (!pythonLock.tryLock()) {
+            throw new IllegalStateException("이미 다른 사용자가 차트 패턴 분석 작업을 진행 중입니다. 잠시 후 다시 시도해주세요.");
+        }
         try {
             String[] command = {
                     pythonExe, "-u", scriptPath,
@@ -144,7 +145,7 @@ public class ChartPatternService {
                 if (pythonResult.has("error")) {
                     String errorMsg = pythonResult.get("error").asText();
                     logger.error("Python 스크립트 실행 오류: {}", errorMsg);
-                    throw new RuntimeException(errorMsg);
+                    throw new RuntimeException("Python 스크립트 실행 오류: " + errorMsg);
                 }
                 List<Map<String, Object>> results = mapper.convertValue(
                         pythonResult,
@@ -158,159 +159,109 @@ public class ChartPatternService {
         } catch (Exception e) {
             logger.error("Python 스크립트 호출 실패", e);
             throw new RuntimeException("Python 스크립트 호출 실패: " + e.getMessage());
+        } finally {
+            pythonLock.unlock();
         }
     }
 
     private String executePythonForChart(String baseSymbol, String start, String end) {
+        if (!pythonLock.tryLock()) {
+            throw new IllegalStateException("이미 다른 사용자가 차트 이미지 생성 작업을 진행 중입니다. 잠시 후 다시 시도해주세요.");
+        }
         try {
             String[] command = {
                     pythonExe, "-u", scriptPath,
                     "--base_symbol", baseSymbol,
                     "--start_date", start,
-                    "--end_date", end,
-                    "--chart"
+                    "--end_date", end
             };
-            logger.info("종목 {} 차트 생성 시작. 기간: {} ~ {}", baseSymbol, start, end);
+            logger.info("Python 스크립트 실행 시작: 차트 이미지 조회. 커맨드: {}", Arrays.toString(command));
             JsonNode pythonResult = executePythonScript(command);
             if (pythonResult != null) {
                 if (pythonResult.has("error")) {
                     String errorMsg = pythonResult.get("error").asText();
-                    logger.error("Python 스크립트 차트 생성 오류 ({}): {}", baseSymbol, errorMsg);
-                    throw new RuntimeException(errorMsg);
+                    logger.error("Python 스크립트 실행 오류: {}", errorMsg);
+                    throw new RuntimeException("Python 스크립트 실행 오류: " + errorMsg);
                 }
-                JsonNode imageDataNode = pythonResult.get("image_data");
-                if (imageDataNode == null || imageDataNode.isNull()) {
-                    return null;
-                }
-                String imageData = imageDataNode.asText();
-                logger.info("종목 {} 차트 생성 완료.", baseSymbol);
-                return imageData;
+                return pythonResult.get("image_data").asText();
             } else {
                 throw new RuntimeException("Python 스크립트 결과가 null입니다. 파이썬 스크립트 실행 중 오류 발생 가능.");
             }
         } catch (Exception e) {
-            logger.error("차트 생성 실패 ({}).", baseSymbol, e);
-            throw new RuntimeException("차트 생성 실패: " + e.getMessage());
+            logger.error("Python 스크립트 호출 실패", e);
+            throw new RuntimeException("Python 스크립트 호출 실패: " + e.getMessage());
+        } finally {
+            pythonLock.unlock();
         }
     }
 
-    private JsonNode executePythonScript(String[] command) throws IOException, InterruptedException, TimeoutException {
-        ProcessBuilder pb = new ProcessBuilder(command);
-        Process process = pb.start();
-        long pid = process.pid();
+    private JsonNode executePythonScript(String[] command) throws IOException, InterruptedException {
+        Process process = null;
+        JsonNode resultJson = null;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
-        ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "OUTPUT", executor);
-            StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), "ERROR", executor);
+            logger.info("Executing command: {}", Arrays.toString(command));
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
 
-            Future<String> outputFuture = outputGobbler.readFully();
-            Future<String> errorFuture = errorGobbler.readFully();
+            try {
+                process = pb.start();
+            } catch (IOException e) {
+                throw new IOException("Python 프로세스 시작 중 오류 발생. 실행 파일 또는 스크립트 경로를 확인하세요: " + e.getMessage(), e);
+            }
 
-            if (!process.waitFor(2, TimeUnit.MINUTES)) {
-                killProcessTree(pid);
-                throw new TimeoutException("Python 스크립트 실행 시간 초과");
+            Process finalProcess = process; // Effectively final 변수 생성
+            Future<StringBuilder> outputFuture = executor.submit(() -> {
+                StringBuilder output = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(finalProcess.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        output.append(line).append("\n");
+                    }
+                } catch (IOException e) {
+                    // 스트림 읽기 중 오류 발생 시 로깅
+                    logger.error("Error reading Python process output stream", e);
+                }
+                return output;
+            });
+
+            if (!process.waitFor(PYTHON_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                throw new IOException("Python 스크립트가 타임아웃되었습니다.");
             }
 
             int exitCode = process.exitValue();
-            String errorOutput = null;
-            String output = null;
-
-            try {
-                errorOutput = errorFuture.get(10, TimeUnit.SECONDS);
-            } catch (ExecutionException e) {
-                logger.error("오류 스트림 읽기 실패", e);
-            }
-
-            try {
-                output = outputFuture.get(10, TimeUnit.SECONDS);
-            } catch (ExecutionException e) {
-                logger.error("출력 스트림 읽기 실패", e);
-            }
+            String errorOutput = outputFuture.get().toString();
 
             if (exitCode != 0) {
-                String errorMsg = "Python 스크립트 종료 코드: " + exitCode + ". 에러 메시지: " + errorOutput;
-                throw new IOException(errorMsg);
+                if (errorOutput.contains("SSL: CERTIFICATE_VERIFY_FAILED")) {
+                    process.destroyForcibly();
+                    throw new IOException("Python 스크립트 실행 중 SSL 통신 오류 발생. 프로세스 강제 종료.");
+                }
+                throw new IOException("Python 스크립트 종료 코드: " + exitCode + ". 에러 메시지: " + errorOutput);
             }
 
-            if (output == null || output.trim().isEmpty()) {
-                return null;
+            String outputString = errorOutput.trim();
+            if (!outputString.isEmpty()) {
+                resultJson = mapper.readTree(outputString);
             }
-
-            // 첫 번째 JSON 객체만 파싱
-            Pattern pattern = Pattern.compile("\\{.*\\}");
-            Matcher matcher = pattern.matcher(output);
-            if (matcher.find()) {
-                String jsonStr = matcher.group();
-                return mapper.readTree(jsonStr);
-            } else {
-                return mapper.readTree("[]");
+        } catch (ExecutionException e) {
+            if (process != null) {
+                process.destroyForcibly();
             }
+            throw new IOException("비동기 작업 처리 중 오류: " + e.getCause().getMessage(), e);
         } finally {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                    logger.warn("ExecutorService가 30초 내에 종료되지 않았습니다. 강제 종료합니다.");
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException ie) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    private void killProcessTree(long pid) {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (osName.contains("win")) {
-            try {
-                ProcessBuilder pb = new ProcessBuilder("taskkill", "/F", "/T", "/PID", String.valueOf(pid));
-                Process process = pb.start();
-                process.waitFor(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                logger.error("Failed to kill process tree on Windows: " + pid, e);
-            }
-        } else {
-            try {
-                ProcessBuilder pb = new ProcessBuilder("pkill", "-TERM", "-P", String.valueOf(pid));
-                Process process = pb.start();
-                process.waitFor(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                logger.error("Failed to kill process tree on Unix: " + pid, e);
-            }
-        }
-    }
-
-    // StreamGobbler 내부 정적 클래스
-    static class StreamGobbler {
-        private final InputStream inputStream;
-        private final String streamType;
-        private final ExecutorService executor;
-        private final StringBuilder content = new StringBuilder();
-
-        public StreamGobbler(InputStream inputStream, String streamType, ExecutorService executor) {
-            this.inputStream = inputStream;
-            this.streamType = streamType;
-            this.executor = executor;
-        }
-
-        public Future<String> readFully() {
-            return executor.submit(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        content.append(line).append(System.lineSeparator());
-                        if ("ERROR".equals(streamType)) {
-                            logger.error("Python Error Stream: {}", line);
-                        } else {
-                            logger.info("Python Output Stream: {}", line);
-                        }
-                    }
+            if (process != null) {
+                try {
+                    process.getInputStream().close();
+                    process.getErrorStream().close();
                 } catch (IOException e) {
-                    logger.error("StreamGobbler error", e);
+                    logger.error("프로세스 스트림 종료 중 오류 발생", e);
                 }
-                return content.toString();
-            });
+            }
+            executor.shutdown();
         }
+        return resultJson;
     }
 }

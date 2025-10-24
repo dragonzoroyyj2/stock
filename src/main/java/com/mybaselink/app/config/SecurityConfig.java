@@ -61,6 +61,7 @@ public class SecurityConfig {
                 // 인증 없이 열고 싶은 API
                 .requestMatchers("/api/krx/**").permitAll()
                 .requestMatchers("/chart/**").permitAll() // 신규 화면
+                .requestMatchers("/batch/**").permitAll() // 신규 화면
                 
                 // 인증 필요한 영역
                 .requestMatchers("/auth/**", "/api/**").authenticated()
