@@ -45,7 +45,7 @@ public class ChartPatternService2 {
         taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("IN_PROGRESS", null, null));
         try {
             List<Map<String, Object>> results = getCachedChartPatterns(start, end, pattern, topN);
-            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("COMPLETED", results, null));
+            //taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("COMPLETED", results, null));
         } catch (Exception e) {
             String errorMsg = "비동기 작업 처리 중 오류: " + e.getMessage();
             taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, errorMsg));

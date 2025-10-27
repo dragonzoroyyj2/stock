@@ -1,109 +1,268 @@
 package com.mybaselink.app.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value; // ✅ Value 어노테이션 추가
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class StockBatchService {
 
-    private static final Logger logger = LoggerFactory.getLogger(StockBatchService.class);
+    private static final Logger log = LoggerFactory.getLogger(StockBatchService.class);
     private final ObjectMapper mapper = new ObjectMapper();
     private final TaskStatusService taskStatusService;
+    
+    // ✅ @Value 어노테이션으로 프로퍼티 값 주입
+    @Value("${python.executable.path}")
+    private String pythonExe;
+    
+    @Value("${python.update_stock_listing.path}")
+    private String stockUpdateScriptPath;
+    
+    @Value("${python.working.dir}")
+    private String pythonWorkingDir;
 
-    private final String pythonExe = "C:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python310\\python.exe";
-    private final String stockUpdateScriptPath = "C:\\LocBootProject\\workspace\\MyBaseLink\\python\\update_stock_listing.py";
+    // 단일 선점
+    private final AtomicBoolean activeLock = new AtomicBoolean(false);
+    private final ConcurrentMap<String, Process> runningProcesses = new ConcurrentHashMap<>();
+
+    // 로그 버퍼
+    private final ConcurrentMap<String, List<LogLine>> taskLogs = new ConcurrentHashMap<>();
+    private static final int MAX_LOG_LINES = 5000;
+
+    // 진행 상태
+    private final ConcurrentMap<String, ProgressState> progressStates = new ConcurrentHashMap<>();
 
     public StockBatchService(TaskStatusService taskStatusService) {
         this.taskStatusService = taskStatusService;
     }
 
+    private static final class ProgressState {
+        volatile double krxPct = 0.0; // 0~100
+        volatile int dataSaved = 0;
+        volatile int dataTotal = 0;
+    }
+
     @Async
-    public CompletableFuture<Void> startUpdateStockListingTask(String taskId) {
-        taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("IN_PROGRESS", null, null));
+    public void startUpdate(String taskId, boolean force, int workers) {
+        // ✅ 선점 실패는 곧바로 예외 → 컨트롤러에서 409로 보냄
+        if (!activeLock.compareAndSet(false, true)) {
+            throw new IllegalStateException("다른 사용자가 업데이트 중입니다. 잠시 후 다시 시도하세요.");
+        }
+
         Process process = null;
         try {
-            logger.info("[{}] 전체 종목 업데이트 작업 시작", taskId);
-            
-            String[] command = { pythonExe, "-u", stockUpdateScriptPath };
-            logger.info("[{}] Python 스크립트 실행 시작: 전체 종목 업데이트. 커맨드: {}", taskId, Arrays.toString(command));
+            taskLogs.put(taskId, new CopyOnWriteArrayList<>());
+            ProgressState state = new ProgressState();
+            progressStates.put(taskId, state);
 
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true); // 에러 스트림을 출력 스트림과 병합
-            
+            Map<String, Object> first = new HashMap<>();
+            first.put("progress", 0);
+            first.put("message", "업데이트 시작 중...");
+            first.put("krxPct", state.krxPct);
+            first.put("dataSaved", state.dataSaved);
+            first.put("dataTotal", state.dataTotal);
+            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("IN_PROGRESS", first, null));
+
+            // Python 명령어
+            List<String> cmd = new ArrayList<>();
+            cmd.add(pythonExe);
+            cmd.add("-u"); // 무버퍼
+            cmd.add(stockUpdateScriptPath);
+            cmd.add("--workers");
+            cmd.add(String.valueOf(workers));
+            if (force) cmd.add("--force");
+
+            log.info("[{}] Python 실행: {}", taskId, cmd);
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.directory(new File(pythonWorkingDir));
+            pb.redirectErrorStream(true);
+            pb.environment().put("PYTHONUNBUFFERED", "1");
+            pb.environment().put("PYTHONIOENCODING", "utf-8");
+
             process = pb.start();
-            
-            // 파이썬 스크립트의 출력을 실시간으로 로깅
-            StreamGobbler gobbler = new StreamGobbler(process.getInputStream(), logger, taskId);
-            Thread gobblerThread = new Thread(gobbler);
-            gobblerThread.start();
-            
-            // 프로세스가 5분 안에 종료되기를 기다림
-            boolean finished = process.waitFor(5, TimeUnit.MINUTES);
-            
-            if (!finished) {
-                logger.error("[{}] Python 프로세스 타임아웃 발생. 프로세스를 강제 종료합니다.", taskId);
-                process.destroyForcibly();
-                gobblerThread.join(1000); // 로깅 스레드 종료 기다림
-                throw new IOException("Python 프로세스 타임아웃");
-            }
-            
-            gobblerThread.join(); // 로깅 스레드가 종료되기를 기다림
+            runningProcesses.put(taskId, process);
 
-            int exitCode = process.exitValue();
-            
-            if (exitCode != 0) {
-                logger.error("[{}] Python 스크립트 비정상 종료. 종료 코드: {}. 출력: {}", taskId, exitCode, gobbler.getOutput().toString());
-                taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, "Python 스크립트 비정상 종료"));
-                return CompletableFuture.completedFuture(null);
-            }
+            Pattern pProg = Pattern.compile("\\[PROGRESS\\]\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(.*)");
+            Pattern pLog  = Pattern.compile("\\[LOG\\]\\s*(.*)");
+            Pattern pCnt  = Pattern.compile("종목\\s*저장\\s*(\\d+)\\s*/\\s*(\\d+)");
 
-            JsonNode pythonResult = null;
-            try {
-                // 파이썬 스크립트 출력의 마지막 JSON만 파싱
-                Pattern jsonPattern = Pattern.compile("\\{.*\\}");
-                Matcher matcher = jsonPattern.matcher(gobbler.getOutput().toString());
-                if (matcher.find()) {
-                    pythonResult = mapper.readTree(matcher.group());
+            // ✅ 실시간 읽기 스레드
+            final Process pRef = process;
+            ExecutorService ioPool = Executors.newSingleThreadExecutor();
+            ioPool.submit(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(pRef.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        final String L = line.trim();
+                        log.info("[PYTHON][{}] {}", taskId, L);
+
+                        Matcher mLog = pLog.matcher(L);
+                        if (mLog.find()) {
+                            appendLog(taskId, mLog.group(1));
+                        }
+
+                        Matcher mProg = pProg.matcher(L);
+                        if (mProg.find()) {
+                            double pct = Double.parseDouble(mProg.group(1));
+                            String msg = mProg.group(2);
+
+                            // KRX 단계 캐치
+                            if (msg.contains("KRX") && msg.contains("다운로드")) {
+                                state.krxPct = Math.max(state.krxPct, 30.0);
+                            } else if (msg.contains("KRX") && (msg.contains("로드됨") || msg.contains("저장 완료") || msg.contains("완료"))) {
+                                state.krxPct = 100.0;
+                            }
+
+                            // 종목 카운트 캐치
+                            Matcher mCnt = pCnt.matcher(msg);
+                            if (mCnt.find()) {
+                                try {
+                                    state.dataSaved = Integer.parseInt(mCnt.group(1));
+                                    state.dataTotal = Integer.parseInt(mCnt.group(2));
+                                } catch (Exception ignore) {}
+                            }
+
+                            Map<String, Object> res = new HashMap<>();
+                            res.put("progress", pct);
+                            res.put("message", msg);
+                            res.put("krxPct", state.krxPct);
+                            res.put("dataSaved", state.dataSaved);
+                            res.put("dataTotal", state.dataTotal);
+
+                            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("IN_PROGRESS", res, null));
+                        }
+                    }
+                } catch (IOException e) {
+                    log.error("[{}] Python 출력 읽기 오류", taskId, e);
                 }
-            } catch (JsonProcessingException e) {
-                logger.error("[{}] Python 출력 JSON 파싱 오류: {}", taskId, gobbler.getOutput().toString(), e);
-                taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, "Python 출력 JSON 파싱 오류"));
-                return CompletableFuture.completedFuture(null);
-            }
-            
-            if (pythonResult != null && pythonResult.has("status") && pythonResult.get("status").asText().equals("success")) {
-                taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("COMPLETED", pythonResult, null));
-                logger.info("[{}] 전체 종목 업데이트 작업 완료", taskId);
-            } else {
-                String errorMsg = (pythonResult != null && pythonResult.has("error")) ? pythonResult.get("error").asText() : "Python 스크립트 실행 실패";
-                taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, errorMsg));
-                logger.error("[{}] 전체 종목 업데이트 작업 실패: {}", taskId, errorMsg);
-            }
-        } catch (Exception e) {
-            String errorMsg = "비동기 종목 업데이트 작업 처리 중 오류: " + e.getMessage();
-            if (process != null && process.isAlive()) {
-                logger.error("[{}] 오류 발생으로 Python 프로세스를 강제 종료합니다.", taskId);
+            });
+
+            // 타임아웃 60분
+            boolean finished = process.waitFor(Duration.ofMinutes(60).toSeconds(), TimeUnit.SECONDS);
+            ioPool.shutdownNow();
+
+            if (!finished) {
                 process.destroyForcibly();
+                setFailed(taskId, "Python 실행 시간 초과");
+                return;
             }
-            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, errorMsg));
-            logger.error("[{}] 비동기 종목 업데이트 작업 실패", taskId, e);
+
+            int exit = process.exitValue();
+            if (exit != 0) {
+                setFailed(taskId, "Python 비정상 종료 (" + exit + ")");
+                return;
+            }
+
+            setCompleted(taskId);
+
+        } catch (Exception e) {
+            log.error("[{}] StockBatch 실행 중 오류", taskId, e);
+            setFailed(taskId, e.getMessage());
+        } finally {
+            if (process != null && process.isAlive()) {
+                try { process.destroyForcibly(); } catch (Exception ignore) {}
+            }
+            runningProcesses.remove(taskId);
+            activeLock.set(false);
+            log.info("[{}] 🔓 Lock 해제 완료", taskId);
         }
-        return CompletableFuture.completedFuture(null);
     }
+
+    private void appendLog(String taskId, String line) {
+        List<LogLine> list = taskLogs.computeIfAbsent(taskId, k -> new CopyOnWriteArrayList<>());
+        list.add(new LogLine(list.size() + 1, line));
+        if (list.size() > MAX_LOG_LINES) list.remove(0);
+    }
+
+    private void setCompleted(String taskId) {
+        ProgressState st = progressStates.getOrDefault(taskId, new ProgressState());
+        st.krxPct = 100.0;
+        Map<String, Object> res = new HashMap<>();
+        res.put("progress", 100);
+        res.put("message", "✅ 전체 완료");
+        res.put("krxPct", st.krxPct);
+        res.put("dataSaved", st.dataSaved);
+        res.put("dataTotal", st.dataTotal);
+        taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("COMPLETED", res, null));
+        appendLog(taskId, "[PROGRESS] 100.0 ✅ 전체 완료");
+        appendLog(taskId, "✅ 업데이트 완료");
+    }
+
+    private void setFailed(String taskId, String err) {
+        taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("FAILED", null, err));
+        appendLog(taskId, "❌ 실패: " + err);
+    }
+
+    /** ✅ 상태 조회 */
+    public Map<String, Object> getStatusWithLogs(String taskId) {
+        TaskStatusService.TaskStatus s = taskStatusService.getTaskStatus(taskId);
+        Map<String, Object> body = new LinkedHashMap<>();
+
+        // 작업이 없는데 lock 중이면 → "다른 사용자가 업데이트 중입니다."
+        if (s == null) {
+            if (activeLock.get()) {
+                body.put("status", "FAILED");
+                body.put("message", "다른 사용자가 업데이트 중입니다. 잠시 후 다시 시도하세요.");
+            } else {
+                body.put("status", "NOT_FOUND");
+                body.put("message", "작업을 찾을 수 없습니다.");
+            }
+            return body;
+        }
+
+        body.put("status", s.getStatus());
+        Map<String, Object> result = new HashMap<>();
+        if (s.getResult() != null) result.putAll(s.getResult());
+
+        ProgressState st = progressStates.get(taskId);
+        if (st != null) {
+            result.put("krxPct", st.krxPct);
+            result.put("dataSaved", st.dataSaved);
+            result.put("dataTotal", st.dataTotal);
+        }
+
+        body.put("result", result);
+        if (s.getErrorMessage() != null)
+            body.put("errorMessage", s.getErrorMessage());
+        body.put("logs", taskLogs.getOrDefault(taskId, Collections.emptyList()));
+
+        return body;
+    }
+
+    public void cancelTask(String taskId) {
+        Process p = runningProcesses.get(taskId);
+        if (p != null && p.isAlive()) {
+            log.warn("[{}] 사용자 요청으로 프로세스 종료", taskId);
+            try { p.destroyForcibly(); } catch (Exception ignore) {}
+            appendLog(taskId, "⏹ 사용자 요청으로 취소됨");
+            ProgressState st = progressStates.getOrDefault(taskId, new ProgressState());
+            Map<String, Object> res = new HashMap<>();
+            res.put("progress", 0);
+            res.put("message", "취소됨");
+            res.put("krxPct", st.krxPct);
+            res.put("dataSaved", st.dataSaved);
+            res.put("dataTotal", st.dataTotal);
+            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("CANCELLED", res, "사용자 취소"));
+        } else {
+            taskStatusService.setTaskStatus(taskId, new TaskStatusService.TaskStatus("CANCELLED",
+                    Map.of("message", "취소됨"), "실행 중인 작업이 없습니다."));
+        }
+        activeLock.set(false);
+    }
+
+    public record LogLine(int seq, String line) {}
 }

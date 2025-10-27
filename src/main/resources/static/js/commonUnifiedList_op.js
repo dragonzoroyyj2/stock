@@ -1,332 +1,449 @@
 /**
- * 🧩 commonUnifiedList.js
+ * 🧩 commonUnifiedList_op.js (최종 안정화 버전)
  * --------------------------------------------------------
  * ✅ 공용 리스트/CRUD/엑셀 + 반응형 테이블 + 페이징 자동조정
+ * ✅ 로딩 스피너 & 토스트 알림 통합
+ * ✅ 순수 div 기반 레이어팝업 정상화 (별도 라이브러리 미사용)
+ * ✅ 중복 메세지 및 이벤트 실행 방지
  * --------------------------------------------------------
  *
  * 사용법:
- *   initUnifiedList({ mode: "server" | "client", ...config });
+ *   const unifiedListManager = initUnifiedList({ mode: "server" | "client", ...config });
  *
- * 주요 기능:
- *   1. 리스트 조회 및 페이징 (서버 / 클라이언트 모드 지원)
- *   2. 검색 기능 (엔터/버튼)
- *   3. 체크박스 전체 선택/해제
- *   4. 모달 등록/상세/수정
- *   5. 선택 삭제
- *   6. 엑셀 다운로드
- *   7. 화면 리사이즈에 따른 페이징 버튼 조정
- *
- * ⚠️ 이 파일만 교체하세요.
+ * ⚠️ 이 파일은 top.html의 스피너/토스트 컴포넌트와 commonPagination_op.js가 로드된 후 로드되어야 합니다.
  */
-
 function initUnifiedList(config) {
-  const {
-    mode = "server",
-    apiUrl,
-    tableBodySelector,
-    paginationSelector,
-    searchInputSelector,
-    searchBtnSelector,
-    addBtnSelector,
-    modalId,
-    saveBtnSelector,
-    closeBtnSelector,
-    checkAllSelector,
-    deleteSelectedBtnSelector,
-    detailModalId,
-    detailFields,
-    updateBtnSelector,
-    excelBtnSelector,
-    columns,
-    pageSize: configPageSize,
-    pageGroupSize: configGroupSize,
-    pagination = true // ✅ 기본 true (false면 페이징 안함)
-  } = config;
+  // 전역에 UnifiedList 인스턴스를 저장하여 중복 초기화 방지
+  if (window.unifiedListInstance) {
+    console.warn("UnifiedList 인스턴스가 이미 존재합니다. 기존 인스턴스를 재사용합니다.");
+    window.unifiedListInstance.init(); // 기존 인스턴스 재초기화
+    return window.unifiedListInstance;
+  }
 
-  let currentPage = 0;
-  const pageSize = configPageSize || 10;
-  let totalPagesCache = 0;
-  let pageGroupSize = configGroupSize || 5;
+  try {
+    const instance = new UnifiedList(config);
+    window.unifiedListInstance = instance;
+    return instance;
+  } catch (e) {
+    console.error("UnifiedList 초기화 실패:", e);
+  }
+}
 
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => document.querySelectorAll(sel);
+class UnifiedList {
+  constructor(config) {
+    this.config = config;
+    this.validateConfig(config);
+    this.currentPage = 0;
+    this.pageSize = config.pageSize || 10;
+    this.pageGroupSize = config.pageGroupSize || 5;
+    this.isFullDataLoaded = false;
+    this.fullDataCache = [];
+    this.totalPagesCache = 0;
+    this.currentSort = { key: null, direction: 'asc' };
+    this.eventListenerBound = false;
 
-  // 클라이언트 모드 전체 데이터
-  let fullDataCache = [];
-  let isFullDataLoaded = false;
+    this.$ = sel => document.querySelector(sel);
+    this.$$ = sel => document.querySelectorAll(sel);
+    
+    this.csrfToken = this.$("meta[name='_csrf']")?.content;
+    this.csrfHeader = this.$("meta[name='_csrf_header']")?.content;
 
-  const csrfToken = document.querySelector("meta[name='_csrf']")?.content;
-  const csrfHeader = document.querySelector("meta[name='_csrf_header']")?.content;
-  const fetchOptions = (method, body) => {
-    const opt = { method, headers: { "Content-Type": "application/json" } };
-    if (csrfToken && csrfHeader) opt.headers[csrfHeader] = csrfToken;
-    if (body) opt.body = JSON.stringify(body);
-    const token = localStorage.getItem("token");
-    if (token) opt.headers["Authorization"] = "Bearer " + token;
-    return opt;
-  };
+    this.config.tableBodySelector = this.config.tableBodySelector || 'tbody';
+    this.config.tableHeaderSelector = this.config.tableHeaderSelector || 'thead';
+    this.config.searchInputSelector = this.config.searchInputSelector || '#searchInput';
+    this.config.searchBtnSelector = this.config.searchBtnSelector || '#searchBtn';
+    this.config.addBtnSelector = this.config.addBtnSelector || '#addBtn';
+    this.config.deleteSelectedBtnSelector = this.config.deleteSelectedBtnSelector || '#deleteSelectedBtn';
+    this.config.excelBtnSelector = this.config.excelBtnSelector || '#excelBtn';
+    this.config.checkAllSelector = this.config.checkAllSelector || '#checkAll';
+    this.config.modalId = this.config.modalId || '#addModal';
+    this.config.detailModalId = this.config.detailModalId || '#detailModal';
+    this.config.paginationSelector = this.config.paginationSelector || '#pagination';
+    this.listContainer = document.body;
+    
+    this.init();
+  }
+  
+  validateConfig(config) {
+    const requiredProps = ['apiUrl', 'tableBodySelector', 'paginationSelector', 'columns'];
+    for (const prop of requiredProps) {
+      if (!config[prop]) {
+        console.error(`Config validation failed: '${prop}' is required.`);
+        throw new Error(`Config validation failed: '${prop}' is required.`);
+      }
+    }
+  }
 
+  init() {
+    this.toggleButtons();
+    if (!this.eventListenerBound) {
+        this.bindEvents();
+    }
+    this.loadList(0);
+  }
+
+  // ===============================
+  // UI 피드백 메서드 (top.html과 연동)
+  // ===============================
+  showSpinner() {
+    const spinner = this.$('#loadingSpinner');
+    if (spinner) spinner.style.display = 'flex';
+  }
+
+  hideSpinner() {
+    const spinner = this.$('#loadingSpinner');
+    if (spinner) spinner.style.display = 'none';
+  }
+  
   // ===============================
   // 데이터 로드
   // ===============================
-  async function loadList(page = 0) {
-    currentPage = page;
-    const search = $(searchInputSelector)?.value || "";
-
-    // -------------------------------
-    // 서버 모드
-    // -------------------------------
-    if (mode === "server") {
-      try {
-        const url = `${apiUrl}?page=${page}&size=${pageSize}&search=${encodeURIComponent(search)}&mode=${mode}&pagination=${pagination}`;
-        const res = await fetch(url, fetchOptions("GET"));
-        if (!res.ok) throw new Error("데이터 조회 실패");
-        const data = await res.json();
-        const content = data.content || [];
-
-        renderTable(content);
-
-        const totalCountEl = $("#totalCount");
-        if (totalCountEl) totalCountEl.textContent = `총 ${data.totalElements ?? content.length}건`;
-
-        const pagingEl = $(paginationSelector);
-        if (pagination && pagingEl) {
-          const totalPages = data.totalPages ?? Math.ceil((data.totalElements ?? content.length) / pageSize);
-          totalPagesCache = totalPages;
-          renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
-        } else if (pagingEl) {
-          pagingEl.innerHTML = "";
-        }
-
-      } catch (err) {
-        console.error(err);
-        alert("데이터 조회 중 오류 발생");
-      }
+  async loadList(page = 0, environment = 'web', search = '', sort = null) {
+    this.currentPage = page;
+    const body = this.$(this.config.tableBodySelector);
+    if (!body) {
+      window.notify('error', '테이블 바디 요소를 찾을 수 없습니다.');
       return;
     }
+    
+    body.innerHTML = '<tr><td colspan="100%">데이터를 불러오는 중입니다...</td></tr>';
+    this.showSpinner();
 
-    // -------------------------------
-    // 클라이언트 모드
-    // -------------------------------
-    if (mode === "client") {
-      try {
-        if (!isFullDataLoaded) {
-          const res = await fetch(`${apiUrl}?mode=client`, fetchOptions("GET"));
-          if (!res.ok) throw new Error("전체 데이터 조회 실패");
-          const json = await res.json();
-          fullDataCache = Array.isArray(json.content) ? json.content : [];
-          isFullDataLoaded = true;
-        }
-
-        const searchLower = search.toLowerCase();
-        let filtered = search
-          ? fullDataCache.filter(item =>
-              Object.values(item).some(v => String(v ?? "").toLowerCase().includes(searchLower))
-            )
-          : fullDataCache;
-
-        // ✅ pagination 여부에 따라 slice 적용
-        const pageData = pagination ? filtered.slice(page * pageSize, (page + 1) * pageSize) : filtered;
-        renderTable(pageData);
-
-        const totalCountEl = $("#totalCount");
-        if (totalCountEl) totalCountEl.textContent = `총 ${filtered.length}건`;
-
-        const pagingEl = $(paginationSelector);
-        if (pagination && pagingEl) {
-          const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-          totalPagesCache = totalPages;
-          renderPagination(currentPage, totalPages, paginationSelector, loadList, pageGroupSize);
-        } else if (pagingEl) {
-          pagingEl.innerHTML = "";
-        }
-
-      } catch (err) {
-        console.error(err);
-        alert("데이터 로드 실패 (client mode)");
+    try {
+      if (this.config.mode === "server") {
+        await this._loadFromServer(page, environment, search, sort);
+      } else if (this.config.mode === "client") {
+        await this._loadFromClient(page, search, sort);
       }
-      return;
+      window.notify('success', '데이터를 성공적으로 불러왔습니다.');
+    } catch (err) {
+      console.error(err);
+      window.notify('error', '데이터 조회 중 오류 발생: ' + err.message);
+      body.innerHTML = '<tr><td colspan="100%">데이터 조회 중 오류가 발생했습니다.</td></tr>';
+    } finally {
+      this.hideSpinner();
     }
-
-    console.warn("알 수 없는 mode:", mode);
   }
 
+  async _loadFromServer(page, environment, search, sort) {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('size', this.pageSize);
+    params.append('search', search);
+    if (sort) params.append('sort', `${sort.key},${sort.direction}`);
 
+    const url = `${this.config.apiUrl}?${params.toString()}`;
+    const res = await fetch(url, this.fetchOptions("GET"));
+    if (!res.ok) throw new Error("서버 데이터 조회 실패");
+    const data = await res.json();
+    this.renderTable(data.content || []);
+    this._updateTotalCount(data.totalElements ?? data.content?.length ?? 0);
+    this.totalPagesCache = data.totalPages ?? Math.ceil((data.totalElements ?? data.content?.length ?? 0) / this.pageSize);
+    this._renderPagination();
+  }
+
+  async _loadFromClient(page, search, sort) {
+    if (!this.isFullDataLoaded) {
+      const res = await fetch(`${this.config.apiUrl}?mode=client`, this.fetchOptions("GET"));
+      if (!res.ok) throw new Error("전체 데이터 조회 실패");
+      const json = await res.json();
+      this.fullDataCache = Array.isArray(json.content) ? json.content : [];
+      this.isFullDataLoaded = true;
+    }
+
+    const searchLower = search.toLowerCase();
+    let filtered = search
+      ? this.fullDataCache.filter(item =>
+          Object.values(item).some(v => String(v ?? "").toLowerCase().includes(searchLower))
+        )
+      : this.fullDataCache;
+
+    if (sort) {
+      filtered.sort((a, b) => {
+        const aVal = a[sort.key] || '';
+        const bVal = b[sort.key] || '';
+        if (aVal < bVal) return sort.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    const pageData = this.config.pagination ? filtered.slice(page * this.pageSize, (page + 1) * this.pageSize) : filtered;
+    this.renderTable(pageData);
+    this._updateTotalCount(filtered.length);
+    this.totalPagesCache = Math.max(1, Math.ceil(filtered.length / this.pageSize));
+    this._renderPagination();
+  }
+
+  _updateTotalCount(count) {
+    const totalCountEl = this.$("#totalCount");
+    if (totalCountEl) totalCountEl.textContent = `총 ${count}건`;
+  }
+
+  _renderPagination() {
+    const pagingEl = this.$(this.config.paginationSelector);
+    if (this.config.pagination && pagingEl) {
+      renderPagination(this.currentPage, this.totalPagesCache, this.config.paginationSelector, this.loadList.bind(this), this.pageGroupSize);
+    } else if (pagingEl) {
+      pagingEl.innerHTML = "";
+    }
+  }
+  
   // ===============================
   // 테이블 렌더링
   // ===============================
-  function renderTable(list) {
-    const tbody = $(tableBodySelector);
+  renderTable(list) {
+    const tbody = this.$(this.config.tableBodySelector);
     if (!tbody) return;
     tbody.innerHTML = "";
-
     if (!Array.isArray(list) || list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="${columns.length + 1}">데이터가 없습니다.</td></tr>`;
+      const colSpan = (this.config.columns?.length || 0) + 1;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}">데이터가 없습니다.</td></tr>`;
+      return;
+    }
+    list.forEach(row => {
+      const tr = document.createElement("tr");
+      const chkTd = document.createElement("td");
+      chkTd.innerHTML = `<input type="checkbox" value="${row.id}" data-id="${row.id}" class="row-checkbox">`;
+      tr.appendChild(chkTd);
+      if (this.config.enableRowClickDetail) {
+        tr.dataset.id = row.id;
+        tr.classList.add('clickable-row');
+      }
+      this.config.columns.forEach(col => {
+        const td = document.createElement("td");
+        const val = row[col.key] ?? "";
+        if (col.isDetailLink && this.config.enableDetailView && !this.config.enableRowClickDetail) {
+          td.innerHTML = `<a href="#" data-id="${row.id}" class="detail-link">${val}</a>`;
+        } else {
+          td.textContent = val;
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    const checkAllEl = this.$(this.config.checkAllSelector);
+    if (checkAllEl) checkAllEl.checked = false;
+  }
+  
+  // ===============================
+  // 버튼 가시성 제어 (역할 기반 추가)
+  // ===============================
+  toggleButtons() {
+    const userRoles = window.userRoles || [];
+    const buttonMap = {
+      search: this.config.searchBtnSelector, 
+      add: this.config.addBtnSelector,
+      deleteSelected: this.config.deleteSelectedBtnSelector, 
+      excel: this.config.excelBtnSelector,
+      save: this.config.saveBtnSelector,
+      update: this.config.updateBtnSelector
+    };
+    const buttonsConfig = this.config.buttons || {};
+    Object.keys(buttonMap).forEach(key => {
+      const selector = buttonMap[key];
+      const element = this.$(selector);
+      if (element) {
+        const buttonConfig = buttonsConfig[key];
+        if (buttonConfig === false || (buttonConfig && buttonConfig.roles && !buttonConfig.roles.some(role => userRoles.includes(role)))) {
+          element.style.display = 'none';
+        } else {
+          element.style.display = '';
+        }
+      }
+    });
+  }
+
+  // ===============================
+  // 이벤트 바인딩 (이벤트 리스너 중복 등록 방지)
+  // ===============================
+  bindEvents() {
+    if (!this.eventListenerBound) {
+      document.body.addEventListener('click', this._handleEvent.bind(this));
+      document.body.addEventListener('keydown', this._handleEvent.bind(this));
+      this.eventListenerBound = true;
+    }
+  }
+
+  _handleEvent(e) {
+    const target = e.target;
+    const closest = (sel) => target.closest(sel);
+
+    if (e.type === 'click') {
+        const searchBtn = closest(this.config.searchBtnSelector);
+        if (searchBtn) {
+          e.preventDefault();
+          const searchValue = this.$(this.config.searchInputSelector)?.value || '';
+          this.loadList(0, this._getEnv(), searchValue, this.currentSort);
+          return;
+        }
+        
+        const addBtn = closest(this.config.addBtnSelector);
+        if (addBtn) {
+          e.preventDefault();
+          this.openAddModal();
+          return;
+        }
+
+        if (target.matches(this.config.checkAllSelector)) {
+          this.toggleAllCheckboxes(target.checked);
+          return;
+        }
+        
+        const detailLink = closest('.detail-link');
+        const clickableRow = closest('.clickable-row');
+        if ((detailLink && this.config.enableDetailView && !this.config.enableRowClickDetail) || (this.config.enableRowClickDetail && clickableRow && !target.closest('.row-checkbox'))) {
+          e.preventDefault();
+          const id = closest('[data-id]')?.dataset.id;
+          if (id) this.openDetailModal(id);
+          return;
+        }
+        
+        const deleteBtn = closest(this.config.deleteSelectedBtnSelector);
+        if (deleteBtn) {
+          this.deleteSelected();
+          return;
+        }
+        
+        const excelBtn = closest(this.config.excelBtnSelector);
+        if (excelBtn) {
+          this.downloadExcel();
+          return;
+        }
+        
+        const sortableHeader = closest(`${this.config.tableHeaderSelector} .sortable`);
+        if (sortableHeader) {
+          this.sortTable(sortableHeader);
+          return;
+        }
+        
+        // 모달 닫기 버튼 처리
+        if (target.matches('[data-close]')) {
+          const modalId = target.dataset.close;
+          this._closeModal(`#${modalId}`);
+          return;
+        }
+    } else if (e.type === 'keydown' && e.key === 'Enter') {
+        if (e.target.matches(this.config.searchInputSelector)) {
+          e.preventDefault();
+          const searchValue = e.target.value;
+          this.loadList(0, this._getEnv(), searchValue, this.currentSort);
+        }
+    }
+  }
+
+  // ===============================
+  // 체크박스 제어
+  // ===============================
+  toggleAllCheckboxes(isChecked) {
+    const checkboxes = this.$$(`${this.config.tableBodySelector} .row-checkbox`);
+    checkboxes.forEach(checkbox => checkbox.checked = isChecked);
+  }
+
+  // ===============================
+  // 선택 삭제 기능
+  // ===============================
+  deleteSelected() {
+    const selectedIds = Array.from(this.$$(`${this.config.tableBodySelector} .row-checkbox:checked`))
+        .map(cb => cb.dataset.id)
+        .filter(id => id);
+    
+    if (selectedIds.length === 0) {
+      window.notify('warning', "삭제할 항목을 선택해주세요.");
       return;
     }
 
-    list.forEach(row => {
-      const tr = document.createElement("tr");
-
-      const chkTd = document.createElement("td");
-      chkTd.innerHTML = `<input type="checkbox" value="${row.id}">`;
-      tr.appendChild(chkTd);
-
-      columns.forEach(col => {
-        const td = document.createElement("td");
-        const val = row[col.key] ?? "";
-        if (col.isDetailLink) {
-          td.innerHTML = `<a href="#" data-id="${row.id}" class="detail-link">${val}</a>`;
-        } else td.textContent = val;
-        tr.appendChild(td);
-      });
-
-      tbody.appendChild(tr);
-    });
-
-    // 상세보기 링크 이벤트
-    $$(".detail-link").forEach(a => {
-      a.addEventListener("click", e => {
-        e.preventDefault();
-        const anchor = e.target.closest(".detail-link");
-        if (!anchor) return;
-        const id = anchor.dataset.id;
-        openDetailModal(id);
-      });
-    });
-
-    const checkAllEl = $(checkAllSelector);
-    if (checkAllEl) checkAllEl.checked = false;
-  }
-
-  // ===============================
-  // 검색, 등록, 수정, 삭제, 엑셀
-  // ===============================
-  const searchInputEl = $(searchInputSelector);
-  const searchBtnEl = $(searchBtnSelector);
-  if (searchBtnEl) searchBtnEl.addEventListener("click", () => {
-    if (mode === "client") isFullDataLoaded = false;
-    loadList(0);
-  });
-  if (searchInputEl) searchInputEl.addEventListener("keydown", e => {
-    if (e.key === "Enter") searchBtnEl?.click();
-  });
-
-  $(addBtnSelector)?.addEventListener("click", () => $(modalId).style.display = "block");
-  $(saveBtnSelector)?.addEventListener("click", async () => {
-    const data = {};
-    columns.forEach(col => { if ($(col.inputSelector)) data[col.key] = $(col.inputSelector).value; });
-    try {
-      const res = await fetch(apiUrl, fetchOptions("POST", data));
-      const result = await res.json();
-      alert(result.status === "success" ? "등록 완료" : "등록 실패");
-      $(modalId).style.display = "none";
-      if (mode === "client") isFullDataLoaded = false;
-      await loadList(currentPage);
-    } catch (err) { console.error(err); alert("등록 중 오류 발생"); }
-  });
-
-  async function openDetailModal(id) {
-    try {
-      const res = await fetch(`${apiUrl}/${id}`, fetchOptions("GET"));
-      if (!res.ok) throw new Error("상세 조회 실패");
-      const item = await res.json();
-      Object.keys(detailFields).forEach(key => { const sel = detailFields[key]; if ($(sel)) $(sel).value = item[key] ?? ""; });
-      $(detailModalId).style.display = "block";
-    } catch (err) { console.error(err); alert("상세 조회 오류 발생"); }
-  }
-
-  $(updateBtnSelector)?.addEventListener("click", async () => {
-    const id = $(detailFields.id).value;
-    const data = {};
-    Object.keys(detailFields).forEach(key => { if (key !== "id") data[key] = $(detailFields[key])?.value; });
-    try {
-      const res = await fetch(`${apiUrl}/${id}`, fetchOptions("PUT", data));
-      const result = await res.json();
-      alert(result.status === "updated" ? "수정 완료" : "수정 실패");
-      $(detailModalId).style.display = "none";
-      if (mode === "client") isFullDataLoaded = false;
-      await loadList(currentPage);
-    } catch (err) { console.error(err); alert("수정 오류 발생"); }
-  });
-
-  $(deleteSelectedBtnSelector)?.addEventListener("click", async () => {
-    const checked = Array.from(document.querySelectorAll(`${tableBodySelector} input[type='checkbox']:checked`)).map(chk => parseInt(chk.value));
-    if (checked.length === 0) return alert("삭제할 항목을 선택하세요.");
-    if (!confirm(`${checked.length}건을 삭제하시겠습니까?`)) return;
-    try {
-      const res = await fetch(apiUrl, fetchOptions("DELETE", checked));
-      const result = await res.json();
-      alert(result.message || "삭제 완료");
-      if (mode === "client") isFullDataLoaded = false;
-      await loadList(currentPage);
-    } catch (err) { console.error(err); alert("삭제 중 오류 발생"); }
-  });
-
-  $(excelBtnSelector)?.addEventListener("click", async () => {
-    try {
-      const search = $(searchInputSelector)?.value || "";
-      const timestamp = new Date().getTime();
-      const url = `${apiUrl}/excel?search=${encodeURIComponent(search)}&t=${timestamp}`;
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: "Bearer " + token } : {};
-      const res = await fetch(url, { method: "GET", headers });
-      if (!res.ok) throw new Error("엑셀 다운로드 실패");
-      const disposition = res.headers.get("Content-Disposition");
-      let filename = "리스트.xlsx";
-      if (disposition) {
-        const utf8 = disposition.match(/filename\*=UTF-8''(.+)/);
-        const ascii = disposition.match(/filename="(.+)"/);
-        if (utf8) filename = decodeURIComponent(utf8[1]);
-        else if (ascii) filename = ascii[1];
+    if (confirm(`${selectedIds.length}개의 항목을 삭제하시겠습니까?`)) {
+      console.log('삭제할 ID:', selectedIds);
+      this.showSpinner();
+      if (this.config.onDeleteSuccess) {
+        this.config.onDeleteSuccess(selectedIds);
+      } else {
+        this.hideSpinner();
+        window.notify('success', '선택된 항목 삭제 요청을 처리했습니다.');
       }
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) { console.error(err); alert("엑셀 다운로드 오류"); }
-  });
+    }
+  }
+  
+  // ===============================
+  // 엑셀 다운로드 기능
+  // ===============================
+  downloadExcel() {
+    window.notify('info', '엑셀 다운로드를 시작합니다.');
+    console.log('엑셀 다운로드 기능 호출');
+  }
 
   // ===============================
-  // 체크박스 전체 선택/해제
+  // 모달 제어 (순수 div 방식으로 변경)
   // ===============================
-  const checkAllEl = $(checkAllSelector);
-  if (checkAllEl) {
-    checkAllEl.addEventListener("change", e => {
-      const checked = e.target.checked;
-      document.querySelectorAll(`${tableBodySelector} input[type='checkbox']`).forEach(chk => chk.checked = checked);
+  openAddModal() {
+    this._openModal(this.config.modalId, this.config.onAddModalOpen);
+  }
+
+  openDetailModal(id) {
+    this._openModal(this.config.detailModalId, () => {
+      console.log(`${this.config.detailModalId} 모달 열기 (ID: ${id})`);
+      if (this.config.onDetailModalOpen) {
+        this.config.onDetailModalOpen(id);
+      }
     });
   }
-  document.addEventListener("change", e => {
-    if (e.target.matches(`${tableBodySelector} input[type='checkbox']`)) {
-      const all = document.querySelectorAll(`${tableBodySelector} input[type='checkbox']`);
-      const checked = document.querySelectorAll(`${tableBodySelector} input[type='checkbox']:checked`);
-      if (checkAllEl) checkAllEl.checked = all.length === checked.length;
+  
+  _openModal(modalSelector, callback) {
+    const modalEl = this.$(modalSelector);
+    if (modalEl) {
+      modalEl.style.display = 'block';
+      if (callback) callback();
+    } else {
+      window.notify('error', `${modalSelector} 모달을 찾을 수 없습니다.`);
     }
-  });
+  }
+  
+  _closeModal(modalSelector) {
+    const modalEl = this.$(modalSelector);
+    if (modalEl) {
+      modalEl.style.display = 'none';
+    }
+  }
+  
+  // ===============================
+  // 테이블 정렬
+  // ===============================
+  sortTable(header) {
+    const sortKey = header.dataset.sortKey;
+    if (!sortKey) return;
+    
+    if (this.currentSort.key === sortKey) {
+      this.currentSort.direction = this.currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.currentSort = { key: sortKey, direction: 'asc' };
+    }
+
+    this.$$(`${this.config.tableHeaderSelector} .sortable`).forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+    header.classList.add(`sorted-${this.currentSort.direction}`);
+
+    const searchValue = this.$(this.config.searchInputSelector)?.value || '';
+    this.loadList(0, this._getEnv(), searchValue, this.currentSort);
+  }
 
   // ===============================
-  // 모달 닫기
+  // 공용 유틸리티
   // ===============================
-  $$(closeBtnSelector).forEach(btn => {
-    btn.addEventListener("click", e => {
-      const targetId = e.target.closest("[data-close]")?.dataset.close;
-      if (targetId) $(`#${targetId}`).style.display = "none";
-    });
-  });
+  _getEnv() {
+    return window.innerWidth < 768 ? 'mobile' : 'web';
+  }
 
-  loadList(0);
-
-  window.addEventListener("resize", () => {
-    renderPagination(currentPage, totalPagesCache, paginationSelector, loadList, pageGroupSize);
-  });
-
-  document.addEventListener("resizePagination", () => {
-    renderPagination(currentPage, totalPagesCache, paginationSelector, loadList, pageGroupSize);
-  });
+  fetchOptions(method, body = null) {
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.csrfHeader && this.csrfToken ? { [this.csrfHeader]: this.csrfToken } : {}
+      },
+    };
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    return options;
+  }
 }

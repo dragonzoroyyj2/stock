@@ -1,0 +1,227 @@
+<!-- fragments/top.html -->
+<div th:fragment="topFragment">
+  <header class="top-bar">
+    <div class="left-section">
+      <button id="menuToggle" title="메뉴 열기/닫기">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1>MyBaseLink</h1>
+    </div>
+
+    <div class="right-section">
+      <!-- 프로필 버튼 -->
+      <div id="profileBtn" class="unified-btn" title="Profile">
+        <i class="fas fa-user-circle"></i>
+      </div>
+
+      <!-- 세션 타이머 + 새로고침 -->
+      <div id="sessionRefreshContainer" class="session-refresh-btn unified-btn" title="Remaining time">
+        <i class="fas fa-clock" id="timerIcon"></i>
+        <span id="sessionTimer">--:--</span>
+        <i id="refreshSessionBtn" class="fas fa-rotate-right" title="Refresh"></i>
+      </div>
+
+      <!-- 로그아웃 -->
+      <button id="logoutBtn" class="unified-btn" title="Logout">
+        <i class="fas fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 프로필 레이어 -->
+  <div id="profileLayer" class="profile-layer">
+    <h3>내 프로필</h3>
+    <label>이름:<input type="text" id="profileName" readonly></label>
+    <label>이메일:<input type="email" id="profileEmail" placeholder="you@example.com"></label>
+    <div class="profile-layer-btns">
+      <button id="saveProfileBtn">저장</button>
+      <button id="closeProfileBtn">닫기</button>
+    </div>
+  </div>
+
+  <style>
+    .top-bar { display:flex; justify-content:space-between; align-items:center; padding:0 1rem; height:50px; background:#f3f4f6; border-bottom:1px solid #d1d5db; z-index:4000; color:#111827; }
+    .left-section { display:flex; align-items:center; gap:10px; }
+    .top-bar h1 { margin:0; font-size:1.1rem; font-weight:600; }
+    .right-section { display:flex; align-items:center; gap:8px; margin-right:1rem; flex-shrink:0; }
+    .unified-btn { display:flex; align-items:center; justify-content:center; gap:6px; height:36px; min-width:36px; padding:0 10px; background:#e5e7eb; color:#1f2937; border-radius:6px; font-size:14px; cursor:pointer; border:none; white-space:nowrap; transition: all 0.2s; }
+    .unified-btn i { font-size:16px; color:#374151; transition: color 0.2s; }
+    .session-refresh-btn { gap:6px; }
+    .profile-layer { position:absolute; top:60px; right:1rem; width:250px; background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:10px; box-shadow:0 4px 6px rgba(0,0,0,0.1); display:none; z-index:5000; color:#111827; }
+    .profile-layer h3 { margin:0 0 8px 0; font-size:1rem; font-weight:600; }
+    .profile-layer label { display:flex; flex-direction:column; margin-bottom:6px; font-size:0.85rem; }
+    .profile-layer input { padding:4px 6px; border-radius:4px; border:1px solid #cbd5e1; font-size:0.85rem; }
+    .profile-layer-btns { display:flex; justify-content:flex-end; gap:6px; margin-top:8px; }
+    .profile-layer-btns button { padding:4px 8px; font-size:0.85rem; border:none; border-radius:4px; cursor:pointer; background:#e5e7eb; color:#1f2937; }
+    .profile-layer-btns button:hover { background:#d1d5db; }
+    .refresh-disabled { background:#d1d5db !important; color:#9ca3af !important; cursor:not-allowed !important; }
+    .refresh-disabled i { color:#9ca3af !important; }
+    .refresh-message { margin-left:10px; font-size:12px; color:#6b7280; }
+  </style>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", ()=>{
+      const toggleBtn = document.getElementById("menuToggle");
+      const refreshBtn = document.getElementById("refreshSessionBtn");
+      const refreshContainer = document.getElementById("sessionRefreshContainer");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const timerEl = document.getElementById("sessionTimer");
+      const timerIcon = document.getElementById("timerIcon");
+      const profileBtn = document.getElementById("profileBtn");
+      const profileLayer = document.getElementById("profileLayer");
+      const closeProfileBtn = document.getElementById("closeProfileBtn");
+      const saveProfileBtn = document.getElementById("saveProfileBtn");
+      const profileName = document.getElementById("profileName");
+      const profileEmail = document.getElementById("profileEmail");
+
+      // =========================
+      // JWT + 세션 정보
+      // =========================
+      let token = localStorage.getItem("token");
+      let sessionExpireAt = parseInt(localStorage.getItem("sessionMillis"));
+      let refreshing = false;
+      let alertShown = false;
+
+      // =========================
+      // JWT 디코딩 (이름 표시)
+      // =========================
+      function parseJwt(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          return JSON.parse(decodeURIComponent(atob(base64).split('').map(c =>
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join('')));
+        } catch (e) { return null; }
+      }
+
+      if (token) {
+        const decoded = parseJwt(token);
+        if (decoded && decoded.sub) profileName.value = decoded.sub;
+      }
+
+      // =========================
+      // 타이머 및 새로고침 활성화 제어
+      // =========================
+      function updateTimer(){
+        if(!sessionExpireAt || isNaN(sessionExpireAt)) return;
+        const remaining = sessionExpireAt - Date.now();
+        if(remaining <= 0){
+          timerEl.textContent="00:00";
+          if(!alertShown){
+            alertShown = true;
+            localStorage.clear();
+            window.location.href="/login";
+          }
+          return;
+        }
+
+        const min=Math.floor(remaining/60000);
+        const sec=Math.floor((remaining%60000)/1000);
+        timerEl.textContent=`${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+
+        // 색상 표시
+        if(remaining <= 1*60*1000){ timerEl.style.color="#dc2626"; timerIcon.style.color="#dc2626"; }
+        else if(remaining <= 5*60*1000){ timerEl.style.color="#f59e0b"; timerIcon.style.color="#f59e0b"; }
+        else { timerEl.style.color="#111827"; timerIcon.style.color="#111827"; }
+
+        // 버튼 제어: 5분 이하만 활성화
+        if(remaining <= 5*60*1000){
+          refreshContainer.classList.remove("refresh-disabled");
+        }else{
+          refreshContainer.classList.add("refresh-disabled");
+        }
+      }
+      updateTimer();
+      setInterval(updateTimer,1000);
+
+      // =========================
+      // 세션 새로고침
+      // =========================
+      async function refreshSession(){
+        if(refreshContainer.classList.contains("refresh-disabled")) return; // 클릭 무효화
+        if(refreshing || !token) return;
+        refreshing = true;
+        refreshContainer.classList.add("refresh-disabled");
+
+        try{
+          const res = await fetch("/auth/refresh",{ method:"POST", headers:{"Authorization":"Bearer "+token}});
+          const data = await res.json();
+
+          if(!res.ok){
+            // 서버가 403 or 401 주면 UI에 메시지 표시
+            const msgBox=document.querySelector(".refresh-message")||document.createElement("div");
+            msgBox.className="refresh-message";
+            msgBox.textContent=data.error||"새로고침 불가";
+            refreshContainer.parentNode.insertBefore(msgBox, refreshContainer.nextSibling);
+            refreshing=false;
+            setTimeout(()=>{ if(msgBox) msgBox.remove(); },3000);
+            return;
+          }
+
+          token=data.token;
+          localStorage.setItem("token", token);
+          localStorage.setItem("sessionMillis", data.sessionMillis);
+          localStorage.setItem("serverTime", data.serverTime);
+
+          const remaining=data.sessionMillis - data.serverTime;
+          sessionExpireAt=Date.now()+remaining;
+
+          // 성공 메시지 표시
+          const msgBox=document.querySelector(".refresh-message")||document.createElement("div");
+          msgBox.className="refresh-message";
+          msgBox.style.color="#16a34a";
+          msgBox.textContent="세션이 연장되었습니다 ✅";
+          refreshContainer.parentNode.insertBefore(msgBox, refreshContainer.nextSibling);
+          setTimeout(()=>{ if(msgBox) msgBox.remove(); },3000);
+
+        }catch(e){
+          console.error(e);
+        }finally{
+          refreshing=false;
+          updateTimer();
+        }
+      }
+
+      refreshBtn.addEventListener("click", refreshSession);
+
+      // =========================
+      // 로그아웃
+      // =========================
+      logoutBtn.addEventListener("click", ()=>{
+        localStorage.clear();
+        window.location.href="/login";
+      });
+
+      // =========================
+      // 사이드바 토글
+      // =========================
+      toggleBtn.addEventListener("click", ()=>{
+        if(typeof window.toggleSidebar==="function") window.toggleSidebar();
+      });
+
+      // =========================
+      // 프로필 열기/닫기
+      // =========================
+      profileBtn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        profileLayer.style.display = profileLayer.style.display==="block"?"none":"block";
+      });
+      closeProfileBtn.addEventListener("click",()=>{ profileLayer.style.display="none"; });
+      saveProfileBtn.addEventListener("click",()=>{
+        const msgBox=document.createElement("div");
+        msgBox.textContent="프로필 저장 완료 ✅";
+        msgBox.style.color="#16a34a";
+        msgBox.style.fontSize="13px";
+        profileLayer.appendChild(msgBox);
+        setTimeout(()=>msgBox.remove(),2000);
+        profileLayer.style.display="none";
+      });
+      document.addEventListener("click",(e)=>{
+        if(!profileLayer.contains(e.target) && e.target!==profileBtn){
+          profileLayer.style.display="none";
+        }
+      });
+    });
+  </script>
+</div>

@@ -1,0 +1,280 @@
+<!-- fragments/top.html -->
+<div th:fragment="topFragment">
+  <header class="top-bar">
+    <div class="left-section">
+      <button id="menuToggle" title="메뉴 열기/닫기">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1>MyBaseLink</h1>
+    </div>
+
+    <div class="right-section">
+      <div id="profileBtn" class="unified-btn" title="Profile">
+        <i class="fas fa-user-circle"></i>
+      </div>
+
+      <div id="sessionRefreshContainer" class="session-refresh-btn unified-btn" title="Remaining time">
+        <i class="fas fa-clock" id="timerIcon"></i>
+        <span id="sessionTimer">--:--</span>
+        <i id="refreshSessionBtn" class="fas fa-rotate-right" title="Refresh"></i>
+      </div>
+
+      <button id="logoutBtn" class="unified-btn" title="Logout">
+        <i class="fas fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="profileLayer" class="profile-layer">
+    <h3>내 프로필</h3>
+    <label>이름:<input type="text" id="profileName" readonly></label>
+    <label>이메일:<input type="email" id="profileEmail" placeholder="you@example.com"></label>
+    <div class="profile-layer-btns">
+      <button id="saveProfileBtn">저장</button>
+      <button id="closeProfileBtn">닫기</button>
+    </div>
+  </div>
+
+  <style>
+    /* ✅ 전체 헤더 */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      background: #f3f4f6;
+      border-bottom: 1px solid #d1d5db;
+      color: #111827;
+      z-index: 4000;
+      box-sizing: border-box;
+      padding: 0 1rem;
+    }
+
+    /* 왼쪽: 토글 + 타이틀 */
+    .left-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .top-bar h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* 오른쪽: 프로필, 타이머, 로그아웃 */
+    .right-section {
+      position: absolute;
+      right: 0.6rem; /* ✅ 화면 끝과의 거리 최소화 */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .unified-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      min-width: 36px;
+      padding: 0 10px;
+      background: #e5e7eb;
+      color: #1f2937;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .unified-btn i { font-size: 16px; color: #374151; transition: color 0.2s; }
+    .session-refresh-btn { gap: 6px; }
+
+    /* 프로필 팝업 */
+    .profile-layer {
+      position: absolute;
+      top: 60px;
+      right: 1rem;
+      width: 250px;
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: none;
+      z-index: 5000;
+      color: #111827;
+    }
+
+    .profile-layer h3 { margin: 0 0 8px 0; font-size: 1rem; font-weight: 600; }
+    .profile-layer label { display: flex; flex-direction: column; margin-bottom: 6px; font-size: 0.85rem; }
+    .profile-layer input { padding: 4px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.85rem; }
+    .profile-layer-btns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+    .profile-layer-btns button { padding: 4px 8px; font-size: 0.85rem; border: none; border-radius: 4px; cursor: pointer; background: #e5e7eb; color: #1f2937; }
+    .profile-layer-btns button:hover { background: #d1d5db; }
+
+    /* ✅ 미니 알림 */
+    .mini-notice {
+      position: absolute;
+      right: 1rem;
+      top: 55px;
+      background: rgba(37,99,235,0.1);
+      color: #1e3a8a;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(-5px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: all 0.4s ease;
+      animation: fadeIn 0.3s forwards;
+      pointer-events: none;
+      z-index: 6000;
+    }
+
+    .mini-notice.error { background: rgba(220,38,38,0.1); color: #b91c1c; }
+    .mini-notice.fade-out { opacity: 0; transform: translateY(-10px); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .right-section { right: 0.5rem; gap: 6px; }
+      .profile-layer { right: 0.5rem; width: 220px; }
+      .mini-notice { right: 0.5rem; font-size: 12px; }
+      .unified-btn { font-size: 13px; padding: 0 8px; }
+    }
+  </style>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", ()=>{
+      const toggleBtn = document.getElementById("menuToggle");
+      const refreshBtn = document.getElementById("refreshSessionBtn");
+      const refreshContainer = document.getElementById("sessionRefreshContainer");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const timerEl = document.getElementById("sessionTimer");
+      const timerIcon = document.getElementById("timerIcon");
+      const profileBtn = document.getElementById("profileBtn");
+      const profileLayer = document.getElementById("profileLayer");
+      const closeProfileBtn = document.getElementById("closeProfileBtn");
+      const saveProfileBtn = document.getElementById("saveProfileBtn");
+      const profileName = document.getElementById("profileName");
+
+      let token = localStorage.getItem("token");
+      let sessionExpireAt = parseInt(localStorage.getItem("sessionMillis"));
+      let refreshing = false;
+      let alertShown = false;
+
+      function parseJwt(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          return JSON.parse(decodeURIComponent(atob(base64).split('').map(c =>
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join('')));
+        } catch (e) { return null; }
+      }
+
+      if (token) {
+        const decoded = parseJwt(token);
+        if (decoded && decoded.sub) profileName.value = decoded.sub;
+      }
+
+      function updateTimer(){
+        if(!sessionExpireAt || isNaN(sessionExpireAt)) return;
+        const remaining = sessionExpireAt - Date.now();
+        if(remaining <= 0){
+          timerEl.textContent="00:00";
+          if(!alertShown){
+            alertShown = true;
+            localStorage.clear();
+            window.location.href="/login";
+          }
+          return;
+        }
+
+        const min=Math.floor(remaining/60000);
+        const sec=Math.floor((remaining%60000)/1000);
+        timerEl.textContent=`${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+
+        if(remaining <= 1*60*1000){ timerEl.style.color="#dc2626"; timerIcon.style.color="#dc2626"; }
+        else if(remaining <= 5*60*1000){ timerEl.style.color="#f59e0b"; timerIcon.style.color="#f59e0b"; }
+        else { timerEl.style.color="#111827"; timerIcon.style.color="#111827"; }
+
+        if(remaining <= 5*60*1000){
+          refreshContainer.classList.remove("refresh-disabled");
+        } else {
+          refreshContainer.classList.add("refresh-disabled");
+        }
+      }
+      updateTimer();
+      setInterval(updateTimer,1000);
+
+      async function refreshSession(){
+        if(refreshContainer.classList.contains("refresh-disabled")) return;
+        if(refreshing || !token) return;
+        refreshing = true;
+        refreshContainer.classList.add("refresh-disabled");
+
+        try{
+          const res = await fetch("/auth/refresh",{ method:"POST", headers:{"Authorization":"Bearer "+token}});
+          const data = await res.json();
+
+          if(!res.ok){
+            showMiniNotice(data.error || "세션 연장 불가", true);
+            refreshing=false;
+            return;
+          }
+
+          token=data.token;
+          localStorage.setItem("token", token);
+          localStorage.setItem("sessionMillis", data.sessionMillis);
+          localStorage.setItem("serverTime", data.serverTime);
+
+          const remaining=data.sessionMillis - data.serverTime;
+          sessionExpireAt=Date.now()+remaining;
+          updateTimer();
+
+          showMiniNotice("세션이 연장되었습니다 ✅", false);
+
+        }catch(e){
+          console.error(e);
+          showMiniNotice("연장 중 오류 발생 ❌", true);
+        }finally{
+          refreshing=false;
+          updateTimer();
+        }
+      }
+
+      function showMiniNotice(message, isError=false){
+        const notice = document.createElement("div");
+        notice.textContent = message;
+        notice.className = "mini-notice";
+        if(isError) notice.classList.add("error");
+
+        refreshContainer.parentNode.insertBefore(notice, refreshContainer.nextSibling);
+        setTimeout(()=> notice.classList.add("fade-out"), 2000);
+        setTimeout(()=> notice.remove(), 3000);
+      }
+
+      refreshBtn.addEventListener("click", refreshSession);
+      logoutBtn.addEventListener("click", ()=>{ localStorage.clear(); window.location.href="/login"; });
+      toggleBtn.addEventListener("click", ()=>{ if(typeof window.toggleSidebar==="function") window.toggleSidebar(); });
+      profileBtn.addEventListener("click",(e)=>{ e.stopPropagation(); profileLayer.style.display = profileLayer.style.display==="block"?"none":"block"; });
+      closeProfileBtn.addEventListener("click",()=>{ profileLayer.style.display="none"; });
+      saveProfileBtn.addEventListener("click",()=>{ showMiniNotice("프로필 저장 완료 ✅", false); profileLayer.style.display="none"; });
+      document.addEventListener("click",(e)=>{ if(!profileLayer.contains(e.target) && e.target!==profileBtn){ profileLayer.style.display="none"; } });
+    });
+  </script>
+</div>

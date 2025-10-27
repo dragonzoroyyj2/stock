@@ -7,6 +7,14 @@
   <title th:text="${title} ?: 'MyBaseLink'">MyBaseLink</title>
 
   <!-- =========================
+       Spring Security CSRF 토큰
+  ========================= -->
+  <th:block th:if="${_csrf} != null">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+  </th:block>
+
+  <!-- =========================
        Font Awesome
   ========================= -->
   <link rel="stylesheet"
